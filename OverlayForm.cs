@@ -47,6 +47,16 @@ internal sealed class OverlayForm : Form
             ref blend, Native.ULW_ALPHA);
     }
 
+    /// <summary>
+    /// Keeps the texture visible on screen but out of screenshots, recordings and screen sharing.
+    /// Needs Windows 10 2004+; older builds would treat the flag as WDA_MONITOR (a black box in captures), so skip there.
+    /// </summary>
+    public void SetCaptureExcluded(bool excluded)
+    {
+        if (Environment.OSVersion.Version.Build < 19041) return;
+        Native.SetWindowDisplayAffinity(Handle, excluded ? Native.WDA_EXCLUDEFROMCAPTURE : Native.WDA_NONE);
+    }
+
     /// <summary>Taskbar/other topmost windows can climb above us; call periodically to stay on top.</summary>
     public void KeepOnTop() =>
         Native.SetWindowPos(Handle, Native.HWND_TOPMOST, 0, 0, 0, 0,

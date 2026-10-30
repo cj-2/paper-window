@@ -11,6 +11,7 @@ internal sealed class Settings
     public int FilterStrength { get; set; } = 100;   // 0..100
     public string Texture { get; set; } = TextureStyles.All[0].Id;
     public int TextureOpacity { get; set; } = 55;    // 0..100
+    public bool HideFromCapture { get; set; } = true;
 
     static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PaperWindow", "settings.json");
@@ -44,6 +45,7 @@ internal sealed class Settings
         FilterStrength = other.FilterStrength;
         Texture = other.Texture;
         TextureOpacity = other.TextureOpacity;
+        HideFromCapture = other.HideFromCapture;
     }
 }
 

@@ -23,6 +23,7 @@ Na primeira execução a janela abre sozinha.
 | Intensidade do filtro | 0% = cores originais, 100% = efeito completo |
 | Textura do papel | Fibras, Grão fino, Jornal (pontilhado), Aquarela |
 | Opacidade da textura | 0% = sem textura, 100% = textura máxima |
+| Esconder textura em prints e compartilhamento de tela | A textura continua visível para você, mas não aparece em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |
 | Iniciar com o Windows | Abre sozinho ao fazer login (`HKCU\...\Run`) |
 
 ## Compilar
@@ -45,5 +46,5 @@ Se quiser um exe que roda em qualquer PC sem runtime, troque por `--self-contain
 
 ## Limitações
 
-- Prints e gravações de tela normalmente **não** mostram o filtro de cor (o Windows aplica ele na hora de exibir).
+- O filtro de cor pode ou não aparecer em prints, dependendo da ferramenta de captura usada. A opção de esconder vale só para a textura.
 - O Windows só permite um filtro de cor da Magnification por vez: se você usar Lupa/inversão de cores ao mesmo tempo, um sobrescreve o outro.

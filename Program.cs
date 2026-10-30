@@ -80,9 +80,10 @@ internal sealed class PaperContext : ApplicationContext
             CloseOverlays();
             if (wanted != null) OpenOverlays(TextureStyles.Find(wanted));
         }
-        else
+        foreach (var o in _overlays)
         {
-            foreach (var o in _overlays) o.SetOpacity(OverlayAlpha);
+            o.SetOpacity(OverlayAlpha);
+            o.SetCaptureExcluded(_settings.HideFromCapture);
         }
         _topmostTimer.Enabled = _settings.Enabled;
     }

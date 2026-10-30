@@ -13,6 +13,7 @@ internal sealed class SettingsForm : Form
     readonly ComboBox _texture = Combo(TextureStyles.All.Select(t => t.Name));
     readonly TrackBar _opacity = Slider();
     readonly Label _opacityValue = ValueLabel();
+    readonly CheckBox _hideFromCapture = new() { Text = "Esconder textura em prints e compartilhamento de tela", AutoSize = true };
     readonly CheckBox _startup = new() { Text = "Iniciar com o Windows", AutoSize = true };
     bool _loading;
 
@@ -42,6 +43,7 @@ internal sealed class SettingsForm : Form
         AddRow(grid, "Intensidade do filtro", _strength, _strengthValue);
         AddRow(grid, "Textura do papel", _texture);
         AddRow(grid, "Opacidade da textura", _opacity, _opacityValue);
+        AddRow(grid, null, _hideFromCapture);
         AddRow(grid, null, _startup);
 
         var reset = new Button { Text = "Restaurar padrão", AutoSize = true };
@@ -65,6 +67,7 @@ internal sealed class SettingsForm : Form
         _strength.ValueChanged += (_, _) => Changed(() => _settings.FilterStrength = _strength.Value);
         _texture.SelectedIndexChanged += (_, _) => Changed(() => _settings.Texture = TextureStyles.All[_texture.SelectedIndex].Id);
         _opacity.ValueChanged += (_, _) => Changed(() => _settings.TextureOpacity = _opacity.Value);
+        _hideFromCapture.CheckedChanged += (_, _) => Changed(() => _settings.HideFromCapture = _hideFromCapture.Checked);
         _startup.CheckedChanged += (_, _) => { if (!_loading) Startup.IsEnabled = _startup.Checked; };
 
         RefreshControls();
@@ -79,6 +82,7 @@ internal sealed class SettingsForm : Form
         _strength.Value = Math.Clamp(_settings.FilterStrength, 0, 100);
         _texture.SelectedIndex = Array.IndexOf(TextureStyles.All, TextureStyles.Find(_settings.Texture));
         _opacity.Value = Math.Clamp(_settings.TextureOpacity, 0, 100);
+        _hideFromCapture.Checked = _settings.HideFromCapture;
         _startup.Checked = Startup.IsEnabled;
         _loading = false;
         UpdateLabels();
@@ -108,7 +112,7 @@ internal sealed class SettingsForm : Form
 
     void UpdateEnabledState()
     {
-        foreach (Control c in new Control[] { _effect, _strength, _texture, _opacity })
+        foreach (Control c in new Control[] { _effect, _strength, _texture, _opacity, _hideFromCapture })
             c.Enabled = _settings.Enabled;
     }
 
