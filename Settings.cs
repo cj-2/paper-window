@@ -22,8 +22,7 @@ internal sealed class Settings
     {
         try
         {
-            if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<Settings>(File.ReadAllText(FilePath)) ?? new Settings();
+            if (File.Exists(FilePath)) return Read(FilePath);
         }
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException)
         {
@@ -32,10 +31,25 @@ internal sealed class Settings
         return new Settings();
     }
 
-    public void Save()
+    /// <summary>Reads a settings file (the app's own or an exported one). Throws on unreadable or invalid JSON.</summary>
+    public static Settings Read(string path)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-        File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        var s = JsonSerializer.Deserialize<Settings>(File.ReadAllText(path))
+                ?? throw new JsonException("Arquivo de configuração vazio.");
+        // Unknown ids (e.g. from a newer version) and out-of-range values fall back to something valid.
+        s.Effect = ColorEffects.Find(s.Effect ?? "").Id;
+        s.Texture = TextureStyles.Find(s.Texture ?? "").Id;
+        s.FilterStrength = Math.Clamp(s.FilterStrength, 0, 100);
+        s.TextureOpacity = Math.Clamp(s.TextureOpacity, 0, 100);
+        return s;
+    }
+
+    public void Save() => Write(FilePath);
+
+    public void Write(string path)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     public void CopyFrom(Settings other)

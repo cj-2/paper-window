@@ -46,6 +46,8 @@ internal sealed class SettingsForm : Form
         AddRow(grid, null, _hideFromCapture);
         AddRow(grid, null, _startup);
 
+        var import = new Button { Text = "Importar...", AutoSize = true };
+        var export = new Button { Text = "Exportar...", AutoSize = true };
         var reset = new Button { Text = "Restaurar padrão", AutoSize = true };
         var close = new Button { Text = "Fechar", AutoSize = true, DialogResult = DialogResult.OK };
         var buttons = new FlowLayoutPanel
@@ -55,12 +57,16 @@ internal sealed class SettingsForm : Form
         };
         buttons.Controls.Add(close);
         buttons.Controls.Add(reset);
+        buttons.Controls.Add(export);
+        buttons.Controls.Add(import);
         grid.Controls.Add(buttons, 0, grid.RowCount);
         grid.SetColumnSpan(buttons, 3);
         Controls.Add(grid);
         AcceptButton = CancelButton = close;
 
         reset.Click += (_, _) => { _settings.CopyFrom(new Settings()); RefreshControls(); _onChange(); };
+        import.Click += (_, _) => ImportSettings();
+        export.Click += (_, _) => ExportSettings();
         close.Click += (_, _) => Close();
         _enabled.CheckedChanged += (_, _) => Changed(() => _settings.Enabled = _enabled.Checked);
         _effect.SelectedIndexChanged += (_, _) => Changed(() => _settings.Effect = ColorEffects.All[_effect.SelectedIndex].Id);
@@ -93,6 +99,45 @@ internal sealed class SettingsForm : Form
     {
         _settings.Save();
         base.OnFormClosed(e);
+    }
+
+    const string FileFilter = "Configuração do Paper Window (*.json)|*.json|Todos os arquivos (*.*)|*.*";
+
+    void ExportSettings()
+    {
+        using var dialog = new SaveFileDialog
+        {
+            Title = "Exportar configurações",
+            Filter = FileFilter,
+            FileName = "paper-window.json",
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            _settings.Write(dialog.FileName);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(this, $"Não foi possível exportar:\n{e.Message}", Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    void ImportSettings()
+    {
+        using var dialog = new OpenFileDialog { Title = "Importar configurações", Filter = FileFilter };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            _settings.CopyFrom(Settings.Read(dialog.FileName));
+            _settings.Save();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            MessageBox.Show(this, $"Arquivo de configuração inválido:\n{e.Message}", Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+        RefreshControls();
+        _onChange();
     }
 
     void Changed(Action update)

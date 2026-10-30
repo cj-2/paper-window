@@ -26,6 +26,12 @@ Na primeira execução a janela abre sozinha.
 | Esconder textura em prints e compartilhamento de tela | A textura continua visível para você, mas não aparece em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |
 | Iniciar com o Windows | Abre sozinho ao fazer login (`HKCU\...\Run`) |
 
+### Importar e exportar
+
+- **Exportar...** salva as configurações atuais num arquivo `.json` (por exemplo, para fazer backup ou levar para outro PC).
+- **Importar...** carrega um arquivo exportado e aplica na hora. Efeitos ou texturas que não existem nesta versão voltam para o padrão, e valores fora da faixa são ajustados para 0–100%.
+- "Iniciar com o Windows" não entra no arquivo, porque é uma configuração de cada computador.
+
 ## Compilar
 
 Requer o .NET 8 SDK.
