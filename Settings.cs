@@ -1,18 +1,67 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Microsoft.Win32;
 
 namespace PaperWindow;
+
+/// <summary>A named look: color effect, blue light and paper texture.</summary>
+internal sealed class Profile
+{
+    public const string DefaultName = "Padrão";
+
+    public string Name { get; set; } = DefaultName;
+    public string Effect { get; set; } = ColorEffects.All[0].Id;
+    public int FilterStrength { get; set; } = 100;   // 0..100
+    public int BlueLightFilter { get; set; } = 0;    // 0..100
+    public string Texture { get; set; } = TextureStyles.All[0].Id;
+    public int TextureOpacity { get; set; } = 55;    // 0..100
+
+    public Profile Clone(string name)
+    {
+        var p = (Profile)MemberwiseClone();
+        p.Name = name;
+        return p;
+    }
+
+    /// <summary>Copies everything but the name.</summary>
+    public void CopyLookFrom(Profile other)
+    {
+        Effect = other.Effect;
+        FilterStrength = other.FilterStrength;
+        BlueLightFilter = other.BlueLightFilter;
+        Texture = other.Texture;
+        TextureOpacity = other.TextureOpacity;
+    }
+
+    public bool SameLook(Profile o) =>
+        Effect == o.Effect && FilterStrength == o.FilterStrength && BlueLightFilter == o.BlueLightFilter
+        && Texture == o.Texture && TextureOpacity == o.TextureOpacity;
+
+    /// <summary>Unknown ids (e.g. from a newer version) and out-of-range values fall back to something valid.</summary>
+    public void Normalize()
+    {
+        Name = string.IsNullOrWhiteSpace(Name) ? DefaultName : Name.Trim();
+        Effect = ColorEffects.Find(Effect ?? "").Id;
+        Texture = TextureStyles.Find(Texture ?? "").Id;
+        FilterStrength = Math.Clamp(FilterStrength, 0, 100);
+        BlueLightFilter = Math.Clamp(BlueLightFilter, 0, 100);
+        TextureOpacity = Math.Clamp(TextureOpacity, 0, 100);
+    }
+}
 
 /// <summary>User preferences, persisted as JSON in %APPDATA%\PaperWindow\settings.json.</summary>
 internal sealed class Settings
 {
     public bool Enabled { get; set; } = true;
-    public string Effect { get; set; } = ColorEffects.All[0].Id;
-    public int FilterStrength { get; set; } = 100;   // 0..100
-    public string Texture { get; set; } = TextureStyles.All[0].Id;
-    public int TextureOpacity { get; set; } = 55;    // 0..100
     public bool HideFromCapture { get; set; } = true;
-    public int BlueLightFilter { get; set; } = 0;    // 0..100
+    public string ToggleHotkey { get; set; } = Hotkey.Default.ToString();   // "" = no hotkey
+    public string ActiveProfile { get; set; } = Profile.DefaultName;
+    public List<Profile> Profiles { get; set; } = [new Profile()];
+
+    /// <summary>The profile being shown and edited. Always exists after <see cref="Normalize"/>.</summary>
+    [JsonIgnore]
+    public Profile Current => Profiles.FirstOrDefault(p => p.Name == ActiveProfile) ?? Profiles[0];
 
     static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PaperWindow", "settings.json");
@@ -35,14 +84,18 @@ internal sealed class Settings
     /// <summary>Reads a settings file (the app's own or an exported one). Throws on unreadable or invalid JSON.</summary>
     public static Settings Read(string path)
     {
-        var s = JsonSerializer.Deserialize<Settings>(File.ReadAllText(path))
+        string json = File.ReadAllText(path);
+        var s = JsonSerializer.Deserialize<Settings>(json)
                 ?? throw new JsonException("Arquivo de configuração vazio.");
-        // Unknown ids (e.g. from a newer version) and out-of-range values fall back to something valid.
-        s.Effect = ColorEffects.Find(s.Effect ?? "").Id;
-        s.Texture = TextureStyles.Find(s.Texture ?? "").Id;
-        s.FilterStrength = Math.Clamp(s.FilterStrength, 0, 100);
-        s.TextureOpacity = Math.Clamp(s.TextureOpacity, 0, 100);
-        s.BlueLightFilter = Math.Clamp(s.BlueLightFilter, 0, 100);
+        // Files from before profiles existed keep the look at the root: turn it into a single profile.
+        if (JsonNode.Parse(json)?["Profiles"] is null)
+        {
+            var legacy = JsonSerializer.Deserialize<Profile>(json)!;
+            legacy.Name = Profile.DefaultName;
+            s.Profiles = [legacy];
+            s.ActiveProfile = legacy.Name;
+        }
+        s.Normalize();
         return s;
     }
 
@@ -51,18 +104,94 @@ internal sealed class Settings
     public void Write(string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-        File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        // Relaxed escaping keeps the file readable ("Ctrl+Alt+P", "Padrão") for people who open it by hand.
+        File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }));
     }
 
-    public void CopyFrom(Settings other)
+    void Normalize()
     {
-        Enabled = other.Enabled;
-        Effect = other.Effect;
-        FilterStrength = other.FilterStrength;
-        Texture = other.Texture;
-        TextureOpacity = other.TextureOpacity;
-        HideFromCapture = other.HideFromCapture;
-        BlueLightFilter = other.BlueLightFilter;
+        var profiles = (Profiles ?? []).Where(p => p != null).ToList();
+        Profiles = [];
+        foreach (var p in profiles)
+        {
+            p.Normalize();
+            p.Name = UniqueName(p.Name);
+            Profiles.Add(p);
+        }
+        if (Profiles.Count == 0) Profiles.Add(new Profile());
+        if (!Profiles.Any(p => p.Name == ActiveProfile)) ActiveProfile = Profiles[0].Name;
+        if (!Hotkey.TryParse(ToggleHotkey, out _)) ToggleHotkey = Hotkey.Default.ToString();
+    }
+
+    /// <summary><paramref name="wanted"/>, or "wanted (2)", "wanted (3)"... — whichever no other profile uses.</summary>
+    public string UniqueName(string wanted, Profile? except = null)
+    {
+        string baseName = string.IsNullOrWhiteSpace(wanted) ? "Perfil" : wanted.Trim();
+        string name = baseName;
+        for (int n = 2; Profiles.Any(p => p != except && string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)); n++)
+            name = $"{baseName} ({n})";
+        return name;
+    }
+
+    /// <summary>Adds a copy of <paramref name="from"/> under a free name and makes it active.</summary>
+    public Profile AddProfile(string name, Profile from)
+    {
+        var p = from.Clone(UniqueName(name));
+        Profiles.Add(p);
+        ActiveProfile = p.Name;
+        return p;
+    }
+
+    /// <summary>Renames a profile; returns false if the name is empty or taken by another profile.</summary>
+    public bool RenameProfile(Profile p, string newName)
+    {
+        newName = newName.Trim();
+        if (newName.Length == 0 || UniqueName(newName, except: p) != newName) return false;
+        if (ActiveProfile == p.Name) ActiveProfile = newName;
+        p.Name = newName;
+        return true;
+    }
+
+    /// <summary>Deletes a profile, keeping at least one.</summary>
+    public bool DeleteProfile(Profile p)
+    {
+        if (Profiles.Count <= 1 || !Profiles.Remove(p)) return false;
+        if (ActiveProfile == p.Name) ActiveProfile = Profiles[0].Name;
+        return true;
+    }
+
+    /// <summary>
+    /// Adds the profiles of an imported file without touching existing ones: identical profiles are skipped,
+    /// name clashes get a suffix. Activates the file's active profile. Returns how many were added.
+    /// </summary>
+    public int ImportProfiles(Settings other)
+    {
+        int added = 0;
+        string? activate = null;
+        foreach (var p in other.Profiles)
+        {
+            var same = Profiles.FirstOrDefault(e =>
+                string.Equals(e.Name, p.Name, StringComparison.OrdinalIgnoreCase) && e.SameLook(p));
+            string name;
+            if (same != null)
+            {
+                name = same.Name;
+            }
+            else
+            {
+                var copy = p.Clone(UniqueName(p.Name));
+                Profiles.Add(copy);
+                name = copy.Name;
+                added++;
+            }
+            if (p == other.Current) activate = name;
+        }
+        if (activate != null) ActiveProfile = activate;
+        return added;
     }
 }
 

@@ -32,6 +32,8 @@ internal sealed class PaperContext : ApplicationContext
     readonly Settings _settings = Settings.Load();
     readonly NotifyIcon _tray;
     readonly ToolStripMenuItem _toggleItem;
+    readonly ToolStripMenuItem _profilesItem = new("Perfil");
+    readonly HotkeyManager _hotkeys = new();
     readonly System.Windows.Forms.Timer _topmostTimer = new() { Interval = 2000 };
     readonly List<OverlayForm> _overlays = new();
     readonly bool _magReady;
@@ -49,6 +51,9 @@ internal sealed class PaperContext : ApplicationContext
             Font = new Font(menu.Font, FontStyle.Bold),
         });
         menu.Items.Add(_toggleItem);
+        menu.Items.Add(_profilesItem);
+        _profilesItem.DropDownItems.Add(new ToolStripMenuItem());   // placeholder so the submenu arrow shows
+        _profilesItem.DropDownOpening += (_, _) => BuildProfilesMenu();
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Sair", null, (_, _) => ExitThread());
 
@@ -63,18 +68,27 @@ internal sealed class PaperContext : ApplicationContext
 
         _topmostTimer.Tick += (_, _) => _overlays.ForEach(o => o.KeepOnTop());
         SystemEvents.DisplaySettingsChanged += OnDisplayChanged;
+        _hotkeys.Pressed += ToggleEnabled;
 
         Apply();
         if (_firstRun) ShowSettings();
+        else if (_hotkeys.Failed)
+            _tray.ShowBalloonTip(5000, "Paper Window",
+                $"O atalho {_settings.ToggleHotkey} já está em uso por outro programa. Escolha outro nas configurações.",
+                ToolTipIcon.Warning);
     }
 
-    /// <summary>Brings the color filter and overlays in line with the current settings.</summary>
+    /// <summary>Brings the color filter, overlays and hotkey in line with the current settings.</summary>
     void Apply()
     {
         _toggleItem.Checked = _settings.Enabled;
         ApplyColorEffect();
 
-        string? wanted = _settings.Enabled ? _settings.Texture : null;
+        Hotkey.TryParse(_settings.ToggleHotkey, out var hotkey);
+        _hotkeys.Set(hotkey);
+        _toggleItem.ShortcutKeyDisplayString = hotkey?.ToString();
+
+        string? wanted = _settings.Enabled ? _settings.Current.Texture : null;
         if (wanted != _overlayTexture)
         {
             CloseOverlays();
@@ -88,11 +102,30 @@ internal sealed class PaperContext : ApplicationContext
         _topmostTimer.Enabled = _settings.Enabled;
     }
 
-    byte OverlayAlpha => (byte)(Math.Clamp(_settings.TextureOpacity, 0, 100) * 255 / 100);
+    byte OverlayAlpha => (byte)(Math.Clamp(_settings.Current.TextureOpacity, 0, 100) * 255 / 100);
 
     void ToggleEnabled()
     {
         _settings.Enabled = !_settings.Enabled;
+        SaveAndApply();
+    }
+
+    void BuildProfilesMenu()
+    {
+        _profilesItem.DropDownItems.Clear();
+        foreach (var p in _settings.Profiles)
+        {
+            string name = p.Name;
+            _profilesItem.DropDownItems.Add(new ToolStripMenuItem(name, null, (_, _) =>
+            {
+                _settings.ActiveProfile = name;
+                SaveAndApply();
+            }) { Checked = p == _settings.Current });
+        }
+    }
+
+    void SaveAndApply()
+    {
         _settings.Save();
         _settingsForm?.RefreshControls();
         Apply();
@@ -105,7 +138,7 @@ internal sealed class PaperContext : ApplicationContext
             _settingsForm.Activate();
             return;
         }
-        _settingsForm = new SettingsForm(_settings, Apply);
+        _settingsForm = new SettingsForm(_settings, _hotkeys, Apply);
         _settingsForm.FormClosed += (_, _) => _settingsForm = null;
         _settingsForm.Show();
         _settingsForm.Activate();
@@ -135,11 +168,15 @@ internal sealed class PaperContext : ApplicationContext
         Apply();
     }
 
-    void ApplyColorEffect() => SetColorMatrix(_settings.Enabled
-        ? ColorEffects.ReduceBlueLight(
-            ColorEffects.Matrix(ColorEffects.Find(_settings.Effect), Math.Clamp(_settings.FilterStrength, 0, 100) / 100f),
-            Math.Clamp(_settings.BlueLightFilter, 0, 100) / 100f)
-        : ColorEffects.Identity());
+    void ApplyColorEffect()
+    {
+        var p = _settings.Current;
+        SetColorMatrix(_settings.Enabled
+            ? ColorEffects.ReduceBlueLight(
+                ColorEffects.Matrix(ColorEffects.Find(p.Effect), Math.Clamp(p.FilterStrength, 0, 100) / 100f),
+                Math.Clamp(p.BlueLightFilter, 0, 100) / 100f)
+            : ColorEffects.Identity());
+    }
 
     void SetColorMatrix(float[] m)
     {
@@ -152,6 +189,7 @@ internal sealed class PaperContext : ApplicationContext
     {
         SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
         _settingsForm?.Close();
+        _hotkeys.Dispose();
         _topmostTimer.Dispose();
         CloseOverlays();
         SetColorMatrix(ColorEffects.Identity());
