@@ -88,7 +88,7 @@ internal sealed class PaperContext : ApplicationContext
         _hotkeys.Set(hotkey);
         _toggleItem.ShortcutKeyDisplayString = hotkey?.ToString();
 
-        string? wanted = _settings.Enabled ? _settings.Current.Texture : null;
+        string? wanted = _settings.Enabled ? _settings.Shown.Texture : null;
         if (wanted != _overlayTexture)
         {
             CloseOverlays();
@@ -102,7 +102,7 @@ internal sealed class PaperContext : ApplicationContext
         _topmostTimer.Enabled = _settings.Enabled;
     }
 
-    byte OverlayAlpha => (byte)(Math.Clamp(_settings.Current.TextureOpacity, 0, 100) * 255 / 100);
+    byte OverlayAlpha => (byte)(Math.Clamp(_settings.Shown.TextureOpacity, 0, 100) * 255 / 100);
 
     void ToggleEnabled()
     {
@@ -116,12 +116,24 @@ internal sealed class PaperContext : ApplicationContext
         foreach (var p in _settings.Profiles)
         {
             string name = p.Name;
-            _profilesItem.DropDownItems.Add(new ToolStripMenuItem(name, null, (_, _) =>
+            _profilesItem.DropDownItems.Add(new ToolStripMenuItem(name, null, (_, _) => SwitchProfile(name))
             {
-                _settings.ActiveProfile = name;
-                SaveAndApply();
-            }) { Checked = p == _settings.Current });
+                Checked = p == _settings.Current,
+            });
         }
+    }
+
+    void SwitchProfile(string name)
+    {
+        // With the window open, it may hold unsaved edits: let it ask before switching.
+        if (_settingsForm is { IsDisposed: false })
+        {
+            _settingsForm.Activate();
+            _settingsForm.SwitchProfile(name);
+            return;
+        }
+        _settings.ActiveProfile = name;
+        SaveAndApply();
     }
 
     void SaveAndApply()
@@ -170,7 +182,7 @@ internal sealed class PaperContext : ApplicationContext
 
     void ApplyColorEffect()
     {
-        var p = _settings.Current;
+        var p = _settings.Shown;
         SetColorMatrix(_settings.Enabled
             ? ColorEffects.ReduceBlueLight(
                 ColorEffects.Matrix(ColorEffects.Find(p.Effect), Math.Clamp(p.FilterStrength, 0, 100) / 100f),
@@ -187,8 +199,11 @@ internal sealed class PaperContext : ApplicationContext
 
     protected override void ExitThreadCore()
     {
-        SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
+        // The window may ask to save unsaved edits; "Cancelar" there means "don't quit".
         _settingsForm?.Close();
+        if (_settingsForm is { IsDisposed: false }) return;
+
+        SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
         _hotkeys.Dispose();
         _topmostTimer.Dispose();
         CloseOverlays();

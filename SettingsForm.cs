@@ -1,8 +1,8 @@
 namespace PaperWindow;
 
 /// <summary>
-/// Settings window. Look controls edit the active profile; every change is applied live through <c>onChange</c>.
-/// Settings are saved on close (and right away for profile operations).
+/// Settings window. Look controls edit a draft of the active profile that is previewed live through <c>onChange</c>
+/// and only stored in the profile when the user clicks "Salvar". General options are saved on close.
 /// </summary>
 internal sealed class SettingsForm : Form
 {
@@ -12,6 +12,7 @@ internal sealed class SettingsForm : Form
 
     readonly CheckBox _enabled = new() { Text = "Efeito ativo", AutoSize = true };
     readonly ComboBox _profile = Combo([]);
+    readonly Button _saveProfile = new() { Text = "Salvar", AutoSize = true };
     readonly Button _deleteProfile = new() { Text = "Excluir", AutoSize = true };
     readonly ComboBox _effect = Combo(ColorEffects.All.Select(e => e.Name));
     readonly TrackBar _strength = Slider();
@@ -47,13 +48,13 @@ internal sealed class SettingsForm : Form
 
         var grid = new TableLayoutPanel { ColumnCount = 3, AutoSize = true, Dock = DockStyle.Fill };
         grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 260));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 300));
         grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 48));
 
         var newProfile = new Button { Text = "Novo...", AutoSize = true };
         var renameProfile = new Button { Text = "Renomear...", AutoSize = true };
-        var profileButtons = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0, 0, 0, 6) };
-        profileButtons.Controls.AddRange([newProfile, renameProfile, _deleteProfile]);
+        var profileButtons = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, 6) };
+        profileButtons.Controls.AddRange([_saveProfile, newProfile, renameProfile, _deleteProfile]);
 
         AddRow(grid, null, _enabled);
         AddRow(grid, "Perfil", _profile);
@@ -84,16 +85,22 @@ internal sealed class SettingsForm : Form
         AcceptButton = CancelButton = close;
 
         var tips = new ToolTip();
-        tips.SetToolTip(reset, "Volta o perfil atual para os valores padrão");
+        tips.SetToolTip(_saveProfile, "Guarda as alterações no perfil atual");
+        tips.SetToolTip(newProfile, "Cria um perfil novo com o visual que está na tela");
+        tips.SetToolTip(reset, "Volta os controles para os valores padrão (clique em Salvar para manter)");
         tips.SetToolTip(_hotkey, "Clique e pressione a nova combinação de teclas");
 
-        _profile.SelectedIndexChanged += (_, _) => SwitchProfile();
+        _profile.SelectedIndexChanged += (_, _) =>
+        {
+            if (!_loading && _profile.SelectedIndex >= 0) SwitchProfile(_settings.Profiles[_profile.SelectedIndex].Name);
+        };
+        _saveProfile.Click += (_, _) => SaveProfile();
         newProfile.Click += (_, _) => NewProfile();
         renameProfile.Click += (_, _) => RenameProfile();
         _deleteProfile.Click += (_, _) => DeleteProfile();
         reset.Click += (_, _) =>
         {
-            _settings.Current.CopyLookFrom(new Profile());
+            _settings.EditDraft(p => p.CopyLookFrom(new Profile()));
             RefreshControls();
             _onChange();
         };
@@ -101,11 +108,11 @@ internal sealed class SettingsForm : Form
         export.Click += (_, _) => ExportSettings();
         close.Click += (_, _) => Close();
         _enabled.CheckedChanged += (_, _) => Changed(() => _settings.Enabled = _enabled.Checked);
-        _effect.SelectedIndexChanged += (_, _) => Changed(() => _settings.Current.Effect = ColorEffects.All[_effect.SelectedIndex].Id);
-        _strength.ValueChanged += (_, _) => Changed(() => _settings.Current.FilterStrength = _strength.Value);
-        _blueLight.ValueChanged += (_, _) => Changed(() => _settings.Current.BlueLightFilter = _blueLight.Value);
-        _texture.SelectedIndexChanged += (_, _) => Changed(() => _settings.Current.Texture = TextureStyles.All[_texture.SelectedIndex].Id);
-        _opacity.ValueChanged += (_, _) => Changed(() => _settings.Current.TextureOpacity = _opacity.Value);
+        _effect.SelectedIndexChanged += (_, _) => EditLook(p => p.Effect = ColorEffects.All[_effect.SelectedIndex].Id);
+        _strength.ValueChanged += (_, _) => EditLook(p => p.FilterStrength = _strength.Value);
+        _blueLight.ValueChanged += (_, _) => EditLook(p => p.BlueLightFilter = _blueLight.Value);
+        _texture.SelectedIndexChanged += (_, _) => EditLook(p => p.Texture = TextureStyles.All[_texture.SelectedIndex].Id);
+        _opacity.ValueChanged += (_, _) => EditLook(p => p.TextureOpacity = _opacity.Value);
         _hideFromCapture.CheckedChanged += (_, _) => Changed(() => _settings.HideFromCapture = _hideFromCapture.Checked);
         _startup.CheckedChanged += (_, _) => { if (!_loading) Startup.IsEnabled = _startup.Checked; };
 
@@ -121,11 +128,11 @@ internal sealed class SettingsForm : Form
     public void RefreshControls()
     {
         _loading = true;
-        var p = _settings.Current;
+        var p = _settings.Shown;
         _enabled.Checked = _settings.Enabled;
         _profile.Items.Clear();
         _profile.Items.AddRange(_settings.Profiles.Select(x => (object)x.Name).ToArray());
-        _profile.SelectedIndex = _settings.Profiles.IndexOf(p);
+        _profile.SelectedIndex = _settings.Profiles.IndexOf(_settings.Current);
         _effect.SelectedIndex = Array.IndexOf(ColorEffects.All, ColorEffects.Find(p.Effect));
         _strength.Value = Math.Clamp(p.FilterStrength, 0, 100);
         _blueLight.Value = Math.Clamp(p.BlueLightFilter, 0, 100);
@@ -139,10 +146,21 @@ internal sealed class SettingsForm : Form
         if (!_hotkey.Focused) UpdateHotkeyDisplay();
     }
 
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        // On Windows shutdown there is no one to answer: keep the saved profile.
+        if (e.CloseReason is CloseReason.WindowsShutDown or CloseReason.TaskManagerClosing)
+            _settings.DiscardDraft();
+        else if (!ConfirmUnsaved())
+            e.Cancel = true;
+        base.OnFormClosing(e);
+    }
+
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         _hotkeys.Suspend(false);
         _settings.Save();
+        _onChange();   // a discarded draft must give the screen back the saved look
         base.OnFormClosed(e);
     }
 
@@ -155,19 +173,48 @@ internal sealed class SettingsForm : Form
 
     // ---- Profiles ----
 
-    void SwitchProfile()
+    /// <summary>Switches the active profile, first asking what to do with unsaved changes. Also used by the tray menu.</summary>
+    public void SwitchProfile(string name)
     {
-        if (_loading || _profile.SelectedIndex < 0) return;
-        _settings.ActiveProfile = _settings.Profiles[_profile.SelectedIndex].Name;
+        if (name != _settings.ActiveProfile && ConfirmUnsaved())
+            _settings.ActiveProfile = name;
+        ProfilesChanged();   // also puts the combo back if the user cancelled
+    }
+
+    void SaveProfile()
+    {
+        _settings.SaveDraft();
         ProfilesChanged();
+    }
+
+    /// <summary>
+    /// If the active profile has unsaved changes, asks whether to save them. Returns false when the user cancels;
+    /// otherwise the changes are saved or discarded and the caller may go on.
+    /// </summary>
+    bool ConfirmUnsaved()
+    {
+        if (!_settings.HasUnsavedChanges)
+        {
+            _settings.DiscardDraft();
+            return true;
+        }
+        var answer = MessageBox.Show(this, $"Salvar as alterações no perfil \"{_settings.Current.Name}\"?", Text,
+            MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+        if (answer == DialogResult.Cancel) return false;
+        if (answer == DialogResult.Yes) _settings.SaveDraft();
+        else _settings.DiscardDraft();
+        _settings.Save();
+        return true;
     }
 
     void NewProfile()
     {
-        string? name = NameDialog.Ask(this, "Novo perfil", "Nome do novo perfil (começa como cópia do atual):",
+        string? name = NameDialog.Ask(this, "Novo perfil", "Nome do novo perfil (usa o visual que está na tela):",
             _settings.UniqueName(_settings.Current.Name));
         if (name == null) return;
-        _settings.AddProfile(name, _settings.Current);
+        // "Save as": the new profile gets the on-screen look; the original profile keeps what was saved.
+        _settings.AddProfile(name, _settings.Shown);
+        _settings.DiscardDraft();
         ProfilesChanged();
     }
 
@@ -189,7 +236,7 @@ internal sealed class SettingsForm : Form
         var p = _settings.Current;
         if (MessageBox.Show(this, $"Excluir o perfil \"{p.Name}\"?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question)
             != DialogResult.Yes) return;
-        _settings.DeleteProfile(p);
+        if (_settings.DeleteProfile(p)) _settings.DiscardDraft();
         ProfilesChanged();
     }
 
@@ -254,6 +301,8 @@ internal sealed class SettingsForm : Form
 
     void ExportSettings()
     {
+        if (!ConfirmUnsaved()) return;
+        RefreshControls();
         using var dialog = new SaveFileDialog
         {
             Title = "Exportar configurações",
@@ -273,6 +322,9 @@ internal sealed class SettingsForm : Form
 
     void ImportSettings()
     {
+        if (!ConfirmUnsaved()) return;
+        RefreshControls();
+        _onChange();
         using var dialog = new OpenFileDialog { Title = "Importar perfis", Filter = FileFilter };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         int added;
@@ -301,6 +353,9 @@ internal sealed class SettingsForm : Form
         _onChange();
     }
 
+    /// <summary>Look edits go to the draft: previewed on screen, stored only when "Salvar" is clicked.</summary>
+    void EditLook(Action<Profile> change) => Changed(() => _settings.EditDraft(change));
+
     void UpdateLabels()
     {
         _strengthValue.Text = $"{_strength.Value}%";
@@ -313,6 +368,7 @@ internal sealed class SettingsForm : Form
         foreach (Control c in new Control[] { _effect, _strength, _blueLight, _texture, _opacity, _hideFromCapture })
             c.Enabled = _settings.Enabled;
         _deleteProfile.Enabled = _settings.Profiles.Count > 1;
+        _saveProfile.Enabled = _settings.HasUnsavedChanges;
     }
 
     static void AddRow(TableLayoutPanel grid, string? label, Control control, Control? trailing = null)

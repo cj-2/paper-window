@@ -15,13 +15,13 @@ Deixa a tela do Windows com cara de e-paper / papel:
 
 ## Configurações
 
-Tudo é aplicado na hora, e salvo em `%APPDATA%\PaperWindow\settings.json` quando você fecha a janela.
+Tudo é aplicado na hora como prévia. As mudanças de perfil só são guardadas quando você clica em **Salvar**; as opções gerais são salvas ao fechar a janela. Tudo fica em `%APPDATA%\PaperWindow\settings.json`.
 Na primeira execução a janela abre sozinha.
 
 | Opção | O que faz |
 |---|---|
 | Efeito ativo | Liga/desliga filtro e textura |
-| Perfil | Escolhe o perfil ativo; **Novo...** cria uma cópia do atual, **Renomear...** e **Excluir** |
+| Perfil | Escolhe o perfil ativo; **Salvar** guarda as alterações, **Novo...** cria um perfil com o visual da tela, **Renomear...** e **Excluir** |
 | Efeito de cor | E-ink quente, E-ink neutro, Sépia, Jornal, Papel kraft, Papel colorido (mantém um pouco da cor) |
 | Intensidade do filtro | 0% = cores originais, 100% = efeito completo |
 | Filtro de luz azul | Esquenta a tela reduzindo azul (até 65%) e um pouco de verde (até 25%), como uma luz noturna; 0% = desligado |
@@ -34,7 +34,11 @@ Na primeira execução a janela abre sozinha.
 ### Perfis
 
 Cada perfil guarda um visual: efeito de cor, intensidade, luz azul, textura e opacidade.
-Mexer nesses controles altera o perfil ativo na hora, sem botão de salvar. "Restaurar padrão" volta só o perfil atual para os valores padrão.
+Mexer nesses controles mostra o resultado na tela na hora, mas só altera o perfil quando você clica em **Salvar**. O botão fica ativo só quando há alterações.
+
+- Se você trocar de perfil, importar, exportar, fechar a janela ou sair do programa com alterações pendentes, ele pergunta se quer salvar (**Sim**/**Não**/**Cancelar**). **Não** descarta as alterações e volta o visual salvo.
+- **Novo...** funciona como "salvar como": cria um perfil com o visual que está na tela e deixa o perfil original como estava salvo.
+- **Restaurar padrão** volta os controles para os valores padrão. Clique em **Salvar** para manter.
 As opções gerais (efeito ativo, esconder em prints, atalho, iniciar com o Windows) valem para todos os perfis.
 
 Arquivos de configuração antigos (de antes dos perfis) viram automaticamente um perfil chamado "Padrão".

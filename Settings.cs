@@ -63,6 +63,32 @@ internal sealed class Settings
     [JsonIgnore]
     public Profile Current => Profiles.FirstOrDefault(p => p.Name == ActiveProfile) ?? Profiles[0];
 
+    /// <summary>Unsaved edits of the active profile, previewed on screen; null when the saved profile is shown.</summary>
+    [JsonIgnore]
+    public Profile? Draft { get; set; }
+
+    /// <summary>The look on screen: the draft if there is one, otherwise the saved active profile.</summary>
+    [JsonIgnore]
+    public Profile Shown => Draft ?? Current;
+
+    [JsonIgnore]
+    public bool HasUnsavedChanges => Draft != null && !Draft.SameLook(Current);
+
+    /// <summary>Changes the on-screen look without touching the saved profile.</summary>
+    public void EditDraft(Action<Profile> change)
+    {
+        Draft ??= Current.Clone(Current.Name);
+        change(Draft);
+    }
+
+    public void SaveDraft()
+    {
+        if (Draft != null) Current.CopyLookFrom(Draft);
+        Draft = null;
+    }
+
+    public void DiscardDraft() => Draft = null;
+
     static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PaperWindow", "settings.json");
 
