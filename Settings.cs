@@ -12,6 +12,7 @@ internal sealed class Settings
     public string Texture { get; set; } = TextureStyles.All[0].Id;
     public int TextureOpacity { get; set; } = 55;    // 0..100
     public bool HideFromCapture { get; set; } = true;
+    public int BlueLightFilter { get; set; } = 0;    // 0..100
 
     static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PaperWindow", "settings.json");
@@ -41,6 +42,7 @@ internal sealed class Settings
         s.Texture = TextureStyles.Find(s.Texture ?? "").Id;
         s.FilterStrength = Math.Clamp(s.FilterStrength, 0, 100);
         s.TextureOpacity = Math.Clamp(s.TextureOpacity, 0, 100);
+        s.BlueLightFilter = Math.Clamp(s.BlueLightFilter, 0, 100);
         return s;
     }
 
@@ -60,6 +62,7 @@ internal sealed class Settings
         Texture = other.Texture;
         TextureOpacity = other.TextureOpacity;
         HideFromCapture = other.HideFromCapture;
+        BlueLightFilter = other.BlueLightFilter;
     }
 }
 

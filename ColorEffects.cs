@@ -36,6 +36,19 @@ internal static class ColorEffects
         return m;
     }
 
+    /// <summary>
+    /// Warms the output by scaling down the green and (mostly) blue output columns, like a night-light.
+    /// <paramref name="amount"/> 0..1; at 1 the white point is roughly a 2700 K incandescent tone.
+    /// </summary>
+    public static float[] ReduceBlueLight(float[] m, float amount)
+    {
+        float[] scale = [1f, 1f - 0.25f * amount, 1f - 0.65f * amount];
+        for (int row = 0; row < 5; row++)
+        for (int col = 0; col < 3; col++)
+            m[row * 5 + col] *= scale[col];
+        return m;
+    }
+
     public static float[] Identity()
     {
         var m = new float[25];

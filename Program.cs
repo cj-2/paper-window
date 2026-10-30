@@ -136,7 +136,9 @@ internal sealed class PaperContext : ApplicationContext
     }
 
     void ApplyColorEffect() => SetColorMatrix(_settings.Enabled
-        ? ColorEffects.Matrix(ColorEffects.Find(_settings.Effect), Math.Clamp(_settings.FilterStrength, 0, 100) / 100f)
+        ? ColorEffects.ReduceBlueLight(
+            ColorEffects.Matrix(ColorEffects.Find(_settings.Effect), Math.Clamp(_settings.FilterStrength, 0, 100) / 100f),
+            Math.Clamp(_settings.BlueLightFilter, 0, 100) / 100f)
         : ColorEffects.Identity());
 
     void SetColorMatrix(float[] m)

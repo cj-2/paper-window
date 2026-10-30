@@ -10,6 +10,8 @@ internal sealed class SettingsForm : Form
     readonly ComboBox _effect = Combo(ColorEffects.All.Select(e => e.Name));
     readonly TrackBar _strength = Slider();
     readonly Label _strengthValue = ValueLabel();
+    readonly TrackBar _blueLight = Slider();
+    readonly Label _blueLightValue = ValueLabel();
     readonly ComboBox _texture = Combo(TextureStyles.All.Select(t => t.Name));
     readonly TrackBar _opacity = Slider();
     readonly Label _opacityValue = ValueLabel();
@@ -41,6 +43,7 @@ internal sealed class SettingsForm : Form
         AddRow(grid, null, _enabled);
         AddRow(grid, "Efeito de cor", _effect);
         AddRow(grid, "Intensidade do filtro", _strength, _strengthValue);
+        AddRow(grid, "Filtro de luz azul", _blueLight, _blueLightValue);
         AddRow(grid, "Textura do papel", _texture);
         AddRow(grid, "Opacidade da textura", _opacity, _opacityValue);
         AddRow(grid, null, _hideFromCapture);
@@ -71,6 +74,7 @@ internal sealed class SettingsForm : Form
         _enabled.CheckedChanged += (_, _) => Changed(() => _settings.Enabled = _enabled.Checked);
         _effect.SelectedIndexChanged += (_, _) => Changed(() => _settings.Effect = ColorEffects.All[_effect.SelectedIndex].Id);
         _strength.ValueChanged += (_, _) => Changed(() => _settings.FilterStrength = _strength.Value);
+        _blueLight.ValueChanged += (_, _) => Changed(() => _settings.BlueLightFilter = _blueLight.Value);
         _texture.SelectedIndexChanged += (_, _) => Changed(() => _settings.Texture = TextureStyles.All[_texture.SelectedIndex].Id);
         _opacity.ValueChanged += (_, _) => Changed(() => _settings.TextureOpacity = _opacity.Value);
         _hideFromCapture.CheckedChanged += (_, _) => Changed(() => _settings.HideFromCapture = _hideFromCapture.Checked);
@@ -86,6 +90,7 @@ internal sealed class SettingsForm : Form
         _enabled.Checked = _settings.Enabled;
         _effect.SelectedIndex = Array.IndexOf(ColorEffects.All, ColorEffects.Find(_settings.Effect));
         _strength.Value = Math.Clamp(_settings.FilterStrength, 0, 100);
+        _blueLight.Value = Math.Clamp(_settings.BlueLightFilter, 0, 100);
         _texture.SelectedIndex = Array.IndexOf(TextureStyles.All, TextureStyles.Find(_settings.Texture));
         _opacity.Value = Math.Clamp(_settings.TextureOpacity, 0, 100);
         _hideFromCapture.Checked = _settings.HideFromCapture;
@@ -152,12 +157,13 @@ internal sealed class SettingsForm : Form
     void UpdateLabels()
     {
         _strengthValue.Text = $"{_strength.Value}%";
+        _blueLightValue.Text = $"{_blueLight.Value}%";
         _opacityValue.Text = $"{_opacity.Value}%";
     }
 
     void UpdateEnabledState()
     {
-        foreach (Control c in new Control[] { _effect, _strength, _texture, _opacity, _hideFromCapture })
+        foreach (Control c in new Control[] { _effect, _strength, _blueLight, _texture, _opacity, _hideFromCapture })
             c.Enabled = _settings.Enabled;
     }
 

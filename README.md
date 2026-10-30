@@ -21,6 +21,7 @@ Na primeira execução a janela abre sozinha.
 | Efeito ativo | Liga/desliga filtro e textura |
 | Efeito de cor | E-ink quente, E-ink neutro, Sépia, Jornal, Papel kraft, Papel colorido (mantém um pouco da cor) |
 | Intensidade do filtro | 0% = cores originais, 100% = efeito completo |
+| Filtro de luz azul | Esquenta a tela reduzindo azul (até 65%) e um pouco de verde (até 25%), como uma luz noturna; 0% = desligado |
 | Textura do papel | Fibras, Grão fino, Jornal (pontilhado), Aquarela |
 | Opacidade da textura | 0% = sem textura, 100% = textura máxima |
 | Esconder textura em prints e compartilhamento de tela | A textura continua visível para você, mas não aparece em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |
@@ -52,5 +53,6 @@ Se quiser um exe que roda em qualquer PC sem runtime, troque por `--self-contain
 
 ## Limitações
 
+- O filtro de luz azul soma com a "Luz noturna" do Windows se as duas estiverem ligadas; normalmente vale usar só uma.
 - O filtro de cor pode ou não aparecer em prints, dependendo da ferramenta de captura usada. A opção de esconder vale só para a textura.
 - O Windows só permite um filtro de cor da Magnification por vez: se você usar Lupa/inversão de cores ao mesmo tempo, um sobrescreve o outro.
