@@ -28,13 +28,15 @@ Na primeira execução a janela abre sozinha.
 | Brilho | Escurece a tela por software, de 100% (normal) até 20%; funciona em qualquer monitor e escurece além do mínimo do próprio monitor |
 | Textura do papel | Fibras, Grão fino, Jornal (pontilhado), Aquarela |
 | Opacidade da textura | 0% = sem textura, 100% = textura máxima |
-| Esconder textura em prints e compartilhamento de tela | A textura continua visível para você, mas não aparece em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |
+| Cursor temático | Troca a seta, a mãozinha de links e o cursor de texto por cursores desenhados nas cores do perfil. Estilos: Seta de tinta, Lápis, Pena |
+| Rastro de tinta no mouse | O mouse deixa um traço de tinta que vai afinando e desbotando, como caneta no papel ou o "fantasma" de telas e-ink. A duração vai de 0,2 s a 1,5 s |
+| Esconder textura e rastro em prints e compartilhamento de tela | A textura e o rastro continuam visíveis para você, mas não aparecem em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |
 | Atalho liga/desliga | Atalho global para ligar/desligar o efeito |
 | Iniciar com o Windows | Abre sozinho ao fazer login (`HKCU\...\Run`) |
 
 ### Perfis
 
-Cada perfil guarda um visual: efeito de cor, intensidade, luz azul, brilho, textura e opacidade.
+Cada perfil guarda um visual: efeito de cor, intensidade, luz azul, brilho, textura, opacidade e os efeitos do mouse (cursor temático e rastro de tinta, cada um com o seu liga/desliga).
 Mexer nesses controles mostra o resultado na tela na hora, mas só altera o perfil quando você clica em **Salvar**. O botão fica ativo só quando há alterações.
 
 - Se você trocar de perfil, importar, exportar, fechar a janela ou sair do programa com alterações pendentes, ele pergunta se quer salvar (**Sim**/**Não**/**Cancelar**). **Não** descarta as alterações e volta o visual salvo.
@@ -81,6 +83,8 @@ Se quiser um exe que roda em qualquer PC sem runtime, troque por `--self-contain
 
 ## Limitações
 
+- O Windows desenha o cursor numa camada própria, fora do filtro de cor; por isso, sem o "Cursor temático", ele fica com as cores originais. O cursor temático recebe as cores já convertidas pelo perfil.
+- O cursor temático troca a seta, a mãozinha e o cursor de texto; os outros (redimensionar, carregando etc.) continuam os do sistema. Os originais voltam ao desligar a opção, desligar o efeito ou sair do programa (e também ao reiniciar ou fazer logoff, caso o programa feche de forma inesperada).
 - O brilho por software escurece as cores, mas não a luz de fundo do monitor: não economiza energia, e o preto fica um pouco menos profundo do que baixando o brilho no próprio monitor.
 - O filtro de luz azul soma com a "Luz noturna" do Windows se as duas estiverem ligadas; normalmente vale usar só uma.
 - O filtro de cor pode ou não aparecer em prints, dependendo da ferramenta de captura usada. A opção de esconder vale só para a textura.

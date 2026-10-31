@@ -36,6 +36,7 @@ internal sealed class PaperContext : ApplicationContext
     readonly HotkeyManager _hotkeys = new();
     readonly System.Windows.Forms.Timer _topmostTimer = new() { Interval = 2000 };
     readonly List<OverlayForm> _overlays = new();
+    readonly InkTrail _inkTrail = new();
     readonly bool _magReady;
     string? _overlayTexture;   // texture id the current overlays were built with; null when none are open
     SettingsForm? _settingsForm;
@@ -43,6 +44,10 @@ internal sealed class PaperContext : ApplicationContext
     public PaperContext()
     {
         _magReady = Native.MagInitialize();
+        // A previous run that crashed may have left themed cursors installed; the system ones come back here,
+        // and on an unexpected crash of this run as well.
+        CursorTheme.Restore();
+        AppDomain.CurrentDomain.UnhandledException += (_, _) => CursorTheme.Restore();
 
         _toggleItem = new ToolStripMenuItem("Efeito papel ativo", null, (_, _) => ToggleEnabled());
         var menu = new ContextMenuStrip();
@@ -66,7 +71,11 @@ internal sealed class PaperContext : ApplicationContext
         };
         _tray.DoubleClick += (_, _) => ShowSettings();
 
-        _topmostTimer.Tick += (_, _) => _overlays.ForEach(o => o.KeepOnTop());
+        _topmostTimer.Tick += (_, _) =>
+        {
+            _overlays.ForEach(o => o.KeepOnTop());
+            _inkTrail.KeepOnTop();
+        };
         SystemEvents.DisplaySettingsChanged += OnDisplayChanged;
         _hotkeys.Pressed += ToggleEnabled;
 
@@ -78,11 +87,15 @@ internal sealed class PaperContext : ApplicationContext
                 ToolTipIcon.Warning);
     }
 
-    /// <summary>Brings the color filter, overlays and hotkey in line with the current settings.</summary>
+    /// <summary>Brings the color filter, overlays, mouse effects and hotkey in line with the current settings.</summary>
     void Apply()
     {
         _toggleItem.Checked = _settings.Enabled;
-        ApplyColorEffect();
+        var p = _settings.Shown;
+        float[] matrix = ColorMatrix();
+        SetColorMatrix(matrix);
+        CursorTheme.Apply(_settings.Enabled && p.CursorTheme ? CursorStyles.Find(p.CursorStyle) : null, matrix);
+        _inkTrail.Configure(_settings.Enabled && p.InkTrail, p.InkTrailLength * 15, _settings.HideFromCapture);
 
         Hotkey.TryParse(_settings.ToggleHotkey, out var hotkey);
         _hotkeys.Set(hotkey);
@@ -180,16 +193,17 @@ internal sealed class PaperContext : ApplicationContext
         Apply();
     }
 
-    void ApplyColorEffect()
+    /// <summary>The screen color matrix for the shown look (identity when the effect is off).</summary>
+    float[] ColorMatrix()
     {
         var p = _settings.Shown;
-        SetColorMatrix(_settings.Enabled
+        return _settings.Enabled
             ? ColorEffects.Dim(
                 ColorEffects.ReduceBlueLight(
                     ColorEffects.Matrix(ColorEffects.Find(p.Effect), Math.Clamp(p.FilterStrength, 0, 100) / 100f),
                     Math.Clamp(p.BlueLightFilter, 0, 100) / 100f),
                 Math.Clamp(p.Brightness, Profile.MinBrightness, 100) / 100f)
-            : ColorEffects.Identity());
+            : ColorEffects.Identity();
     }
 
     void SetColorMatrix(float[] m)
@@ -208,6 +222,8 @@ internal sealed class PaperContext : ApplicationContext
         SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
         _hotkeys.Dispose();
         _topmostTimer.Dispose();
+        _inkTrail.Dispose();
+        CursorTheme.Restore();
         CloseOverlays();
         SetColorMatrix(ColorEffects.Identity());
         if (_magReady) Native.MagUninitialize();

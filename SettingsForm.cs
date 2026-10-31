@@ -24,7 +24,12 @@ internal sealed class SettingsForm : Form
     readonly ComboBox _texture = Combo(TextureStyles.All.Select(t => t.Name));
     readonly TrackBar _opacity = Slider();
     readonly Label _opacityValue = ValueLabel();
-    readonly CheckBox _hideFromCapture = new() { Text = "Esconder textura em prints e compartilhamento de tela", AutoSize = true };
+    readonly CheckBox _cursorTheme = new() { Text = "Cursor temático", AutoSize = true };
+    readonly ComboBox _cursorStyle = Combo(CursorStyles.All.Select(s => s.Name));
+    readonly CheckBox _inkTrail = new() { Text = "Rastro de tinta no mouse", AutoSize = true };
+    readonly TrackBar _trailLength = Slider(Profile.MinTrailLength);
+    readonly Label _trailLengthValue = ValueLabel();
+    readonly CheckBox _hideFromCapture = new() { Text = "Esconder textura e rastro em prints e compartilhamento de tela", AutoSize = true };
     readonly TextBox _hotkey = new() { ReadOnly = true, Dock = DockStyle.Fill, ShortcutsEnabled = false, Cursor = Cursors.Hand };
     readonly Label _hotkeyStatus = new() { AutoSize = true, MaximumSize = new Size(300, 0), Margin = new Padding(0, 0, 0, 6) };
     readonly CheckBox _startup = new() { Text = "Iniciar com o Windows", AutoSize = true };
@@ -67,6 +72,10 @@ internal sealed class SettingsForm : Form
         AddRow(grid, "Brilho", _brightness, _brightnessValue);
         AddRow(grid, "Textura do papel", _texture);
         AddRow(grid, "Opacidade da textura", _opacity, _opacityValue);
+        AddRow(grid, null, _cursorTheme);
+        AddRow(grid, "Estilo do cursor", _cursorStyle);
+        AddRow(grid, null, _inkTrail);
+        AddRow(grid, "Duração do rastro", _trailLength, _trailLengthValue);
         AddRow(grid, null, _hideFromCapture);
         AddRow(grid, "Atalho liga/desliga", _hotkey);
         AddRow(grid, "", _hotkeyStatus);
@@ -117,6 +126,10 @@ internal sealed class SettingsForm : Form
         _brightness.ValueChanged += (_, _) => EditLook(p => p.Brightness = _brightness.Value);
         _texture.SelectedIndexChanged += (_, _) => EditLook(p => p.Texture = TextureStyles.All[_texture.SelectedIndex].Id);
         _opacity.ValueChanged += (_, _) => EditLook(p => p.TextureOpacity = _opacity.Value);
+        _cursorTheme.CheckedChanged += (_, _) => EditLook(p => p.CursorTheme = _cursorTheme.Checked);
+        _cursorStyle.SelectedIndexChanged += (_, _) => EditLook(p => p.CursorStyle = CursorStyles.All[_cursorStyle.SelectedIndex].Id);
+        _inkTrail.CheckedChanged += (_, _) => EditLook(p => p.InkTrail = _inkTrail.Checked);
+        _trailLength.ValueChanged += (_, _) => EditLook(p => p.InkTrailLength = _trailLength.Value);
         _hideFromCapture.CheckedChanged += (_, _) => Changed(() => _settings.HideFromCapture = _hideFromCapture.Checked);
         _startup.CheckedChanged += (_, _) => { if (!_loading) Startup.IsEnabled = _startup.Checked; };
 
@@ -143,6 +156,10 @@ internal sealed class SettingsForm : Form
         _brightness.Value = Math.Clamp(p.Brightness, Profile.MinBrightness, 100);
         _texture.SelectedIndex = Array.IndexOf(TextureStyles.All, TextureStyles.Find(p.Texture));
         _opacity.Value = Math.Clamp(p.TextureOpacity, 0, 100);
+        _cursorTheme.Checked = p.CursorTheme;
+        _cursorStyle.SelectedIndex = Array.IndexOf(CursorStyles.All, CursorStyles.Find(p.CursorStyle));
+        _inkTrail.Checked = p.InkTrail;
+        _trailLength.Value = Math.Clamp(p.InkTrailLength, Profile.MinTrailLength, 100);
         _hideFromCapture.Checked = _settings.HideFromCapture;
         _startup.Checked = Startup.IsEnabled;
         _loading = false;
@@ -366,13 +383,18 @@ internal sealed class SettingsForm : Form
         _strengthValue.Text = $"{_strength.Value}%";
         _blueLightValue.Text = $"{_blueLight.Value}%";
         _brightnessValue.Text = $"{_brightness.Value}%";
+        _trailLengthValue.Text = $"{_trailLength.Value * 15 / 1000.0:0.0} s";
         _opacityValue.Text = $"{_opacity.Value}%";
     }
 
     void UpdateEnabledState()
     {
-        foreach (Control c in new Control[] { _effect, _strength, _blueLight, _brightness, _texture, _opacity, _hideFromCapture })
+        foreach (Control c in new Control[]
+                 { _effect, _strength, _blueLight, _brightness, _texture, _opacity, _cursorTheme, _inkTrail, _hideFromCapture })
             c.Enabled = _settings.Enabled;
+        // Each mouse effect's own setting is only editable while that effect is on.
+        _cursorStyle.Enabled = _settings.Enabled && _settings.Shown.CursorTheme;
+        _trailLength.Enabled = _settings.Enabled && _settings.Shown.InkTrail;
         _deleteProfile.Enabled = _settings.Profiles.Count > 1;
         _saveProfile.Enabled = _settings.HasUnsavedChanges;
     }

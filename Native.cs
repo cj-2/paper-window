@@ -61,6 +61,37 @@ internal static class Native
     [DllImport("user32.dll")]
     public static extern short GetKeyState(int nVirtKey);
 
+    public const uint OCR_NORMAL = 32512, OCR_IBEAM = 32513, OCR_HAND = 32649;
+    public const uint SPI_SETCURSORS = 0x0057;
+    public const int SM_CXCURSOR = 13;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ICONINFO
+    {
+        [MarshalAs(UnmanagedType.Bool)] public bool fIcon;
+        public int xHotspot, yHotspot;
+        public IntPtr hbmMask, hbmColor;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern bool GetIconInfo(IntPtr hIcon, out ICONINFO piconinfo);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr CreateIconIndirect(ref ICONINFO piconinfo);
+
+    [DllImport("user32.dll")]
+    public static extern bool DestroyIcon(IntPtr hIcon);
+
+    /// <summary>Replaces a system cursor until logoff or SPI_SETCURSORS; takes ownership of (destroys) <paramref name="hcur"/>.</summary>
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SetSystemCursor(IntPtr hcur, uint id);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
+
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetrics(int nIndex);
+
     public const uint WDA_NONE = 0x00;
     public const uint WDA_EXCLUDEFROMCAPTURE = 0x11;
 

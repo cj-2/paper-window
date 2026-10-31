@@ -5,11 +5,12 @@ using Microsoft.Win32;
 
 namespace PaperWindow;
 
-/// <summary>A named look: color effect, blue light and paper texture.</summary>
+/// <summary>A named look: color effect, blue light, brightness, paper texture and mouse effects.</summary>
 internal sealed class Profile
 {
     public const string DefaultName = "Padrão";
     public const int MinBrightness = 20;   // below this the screen becomes hard to read
+    public const int MinTrailLength = 10;
 
     public string Name { get; set; } = DefaultName;
     public string Effect { get; set; } = ColorEffects.All[0].Id;
@@ -18,6 +19,10 @@ internal sealed class Profile
     public int Brightness { get; set; } = 100;       // MinBrightness..100
     public string Texture { get; set; } = TextureStyles.All[0].Id;
     public int TextureOpacity { get; set; } = 55;    // 0..100
+    public bool CursorTheme { get; set; } = false;
+    public string CursorStyle { get; set; } = CursorStyles.All[0].Id;
+    public bool InkTrail { get; set; } = false;
+    public int InkTrailLength { get; set; } = 40;    // MinTrailLength..100 (x15 ms)
 
     public Profile Clone(string name)
     {
@@ -35,11 +40,17 @@ internal sealed class Profile
         Brightness = other.Brightness;
         Texture = other.Texture;
         TextureOpacity = other.TextureOpacity;
+        CursorTheme = other.CursorTheme;
+        CursorStyle = other.CursorStyle;
+        InkTrail = other.InkTrail;
+        InkTrailLength = other.InkTrailLength;
     }
 
     public bool SameLook(Profile o) =>
         Effect == o.Effect && FilterStrength == o.FilterStrength && BlueLightFilter == o.BlueLightFilter
-        && Brightness == o.Brightness && Texture == o.Texture && TextureOpacity == o.TextureOpacity;
+        && Brightness == o.Brightness && Texture == o.Texture && TextureOpacity == o.TextureOpacity
+        && CursorTheme == o.CursorTheme && CursorStyle == o.CursorStyle
+        && InkTrail == o.InkTrail && InkTrailLength == o.InkTrailLength;
 
     /// <summary>Unknown ids (e.g. from a newer version) and out-of-range values fall back to something valid.</summary>
     public void Normalize()
@@ -51,6 +62,8 @@ internal sealed class Profile
         BlueLightFilter = Math.Clamp(BlueLightFilter, 0, 100);
         Brightness = Math.Clamp(Brightness, MinBrightness, 100);
         TextureOpacity = Math.Clamp(TextureOpacity, 0, 100);
+        CursorStyle = CursorStyles.Find(CursorStyle ?? "").Id;
+        InkTrailLength = Math.Clamp(InkTrailLength, MinTrailLength, 100);
     }
 }
 

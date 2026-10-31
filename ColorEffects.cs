@@ -58,6 +58,15 @@ internal static class ColorEffects
         return m;
     }
 
+    /// <summary>What <paramref name="c"/> looks like on screen once the matrix is applied ([r g b 1] * M).</summary>
+    public static Color Transform(float[] m, Color c)
+    {
+        float r = c.R / 255f, g = c.G / 255f, b = c.B / 255f;
+        int Channel(int col) =>
+            (int)Math.Round(Math.Clamp(r * m[col] + g * m[5 + col] + b * m[10 + col] + m[20 + col], 0f, 1f) * 255);
+        return Color.FromArgb(c.A, Channel(0), Channel(1), Channel(2));
+    }
+
     public static float[] Identity()
     {
         var m = new float[25];
