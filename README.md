@@ -25,6 +25,7 @@ Na primeira execução a janela abre sozinha.
 | Efeito de cor | E-ink quente, E-ink neutro, Sépia, Jornal, Papel kraft, Papel colorido (mantém um pouco da cor) |
 | Intensidade do filtro | 0% = cores originais, 100% = efeito completo |
 | Filtro de luz azul | Esquenta a tela reduzindo azul (até 65%) e um pouco de verde (até 25%), como uma luz noturna; 0% = desligado |
+| Brilho | Escurece a tela por software, de 100% (normal) até 20%; funciona em qualquer monitor e escurece além do mínimo do próprio monitor |
 | Textura do papel | Fibras, Grão fino, Jornal (pontilhado), Aquarela |
 | Opacidade da textura | 0% = sem textura, 100% = textura máxima |
 | Esconder textura em prints e compartilhamento de tela | A textura continua visível para você, mas não aparece em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |
@@ -33,7 +34,7 @@ Na primeira execução a janela abre sozinha.
 
 ### Perfis
 
-Cada perfil guarda um visual: efeito de cor, intensidade, luz azul, textura e opacidade.
+Cada perfil guarda um visual: efeito de cor, intensidade, luz azul, brilho, textura e opacidade.
 Mexer nesses controles mostra o resultado na tela na hora, mas só altera o perfil quando você clica em **Salvar**. O botão fica ativo só quando há alterações.
 
 - Se você trocar de perfil, importar, exportar, fechar a janela ou sair do programa com alterações pendentes, ele pergunta se quer salvar (**Sim**/**Não**/**Cancelar**). **Não** descarta as alterações e volta o visual salvo.
@@ -80,6 +81,7 @@ Se quiser um exe que roda em qualquer PC sem runtime, troque por `--self-contain
 
 ## Limitações
 
+- O brilho por software escurece as cores, mas não a luz de fundo do monitor: não economiza energia, e o preto fica um pouco menos profundo do que baixando o brilho no próprio monitor.
 - O filtro de luz azul soma com a "Luz noturna" do Windows se as duas estiverem ligadas; normalmente vale usar só uma.
 - O filtro de cor pode ou não aparecer em prints, dependendo da ferramenta de captura usada. A opção de esconder vale só para a textura.
 - O Windows só permite um filtro de cor da Magnification por vez: se você usar Lupa/inversão de cores ao mesmo tempo, um sobrescreve o outro.

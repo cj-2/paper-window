@@ -184,9 +184,11 @@ internal sealed class PaperContext : ApplicationContext
     {
         var p = _settings.Shown;
         SetColorMatrix(_settings.Enabled
-            ? ColorEffects.ReduceBlueLight(
-                ColorEffects.Matrix(ColorEffects.Find(p.Effect), Math.Clamp(p.FilterStrength, 0, 100) / 100f),
-                Math.Clamp(p.BlueLightFilter, 0, 100) / 100f)
+            ? ColorEffects.Dim(
+                ColorEffects.ReduceBlueLight(
+                    ColorEffects.Matrix(ColorEffects.Find(p.Effect), Math.Clamp(p.FilterStrength, 0, 100) / 100f),
+                    Math.Clamp(p.BlueLightFilter, 0, 100) / 100f),
+                Math.Clamp(p.Brightness, Profile.MinBrightness, 100) / 100f)
             : ColorEffects.Identity());
     }
 

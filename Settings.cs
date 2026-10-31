@@ -9,11 +9,13 @@ namespace PaperWindow;
 internal sealed class Profile
 {
     public const string DefaultName = "Padrão";
+    public const int MinBrightness = 20;   // below this the screen becomes hard to read
 
     public string Name { get; set; } = DefaultName;
     public string Effect { get; set; } = ColorEffects.All[0].Id;
     public int FilterStrength { get; set; } = 100;   // 0..100
     public int BlueLightFilter { get; set; } = 0;    // 0..100
+    public int Brightness { get; set; } = 100;       // MinBrightness..100
     public string Texture { get; set; } = TextureStyles.All[0].Id;
     public int TextureOpacity { get; set; } = 55;    // 0..100
 
@@ -30,13 +32,14 @@ internal sealed class Profile
         Effect = other.Effect;
         FilterStrength = other.FilterStrength;
         BlueLightFilter = other.BlueLightFilter;
+        Brightness = other.Brightness;
         Texture = other.Texture;
         TextureOpacity = other.TextureOpacity;
     }
 
     public bool SameLook(Profile o) =>
         Effect == o.Effect && FilterStrength == o.FilterStrength && BlueLightFilter == o.BlueLightFilter
-        && Texture == o.Texture && TextureOpacity == o.TextureOpacity;
+        && Brightness == o.Brightness && Texture == o.Texture && TextureOpacity == o.TextureOpacity;
 
     /// <summary>Unknown ids (e.g. from a newer version) and out-of-range values fall back to something valid.</summary>
     public void Normalize()
@@ -46,6 +49,7 @@ internal sealed class Profile
         Texture = TextureStyles.Find(Texture ?? "").Id;
         FilterStrength = Math.Clamp(FilterStrength, 0, 100);
         BlueLightFilter = Math.Clamp(BlueLightFilter, 0, 100);
+        Brightness = Math.Clamp(Brightness, MinBrightness, 100);
         TextureOpacity = Math.Clamp(TextureOpacity, 0, 100);
     }
 }

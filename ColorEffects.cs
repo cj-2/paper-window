@@ -49,6 +49,15 @@ internal static class ColorEffects
         return m;
     }
 
+    /// <summary>Darkens the output by scaling every color column (including offsets) by <paramref name="factor"/> (0..1).</summary>
+    public static float[] Dim(float[] m, float factor)
+    {
+        for (int row = 0; row < 5; row++)
+        for (int col = 0; col < 3; col++)
+            m[row * 5 + col] *= factor;
+        return m;
+    }
+
     public static float[] Identity()
     {
         var m = new float[25];

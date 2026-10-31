@@ -19,6 +19,8 @@ internal sealed class SettingsForm : Form
     readonly Label _strengthValue = ValueLabel();
     readonly TrackBar _blueLight = Slider();
     readonly Label _blueLightValue = ValueLabel();
+    readonly TrackBar _brightness = Slider(Profile.MinBrightness);
+    readonly Label _brightnessValue = ValueLabel();
     readonly ComboBox _texture = Combo(TextureStyles.All.Select(t => t.Name));
     readonly TrackBar _opacity = Slider();
     readonly Label _opacityValue = ValueLabel();
@@ -62,6 +64,7 @@ internal sealed class SettingsForm : Form
         AddRow(grid, "Efeito de cor", _effect);
         AddRow(grid, "Intensidade do filtro", _strength, _strengthValue);
         AddRow(grid, "Filtro de luz azul", _blueLight, _blueLightValue);
+        AddRow(grid, "Brilho", _brightness, _brightnessValue);
         AddRow(grid, "Textura do papel", _texture);
         AddRow(grid, "Opacidade da textura", _opacity, _opacityValue);
         AddRow(grid, null, _hideFromCapture);
@@ -111,6 +114,7 @@ internal sealed class SettingsForm : Form
         _effect.SelectedIndexChanged += (_, _) => EditLook(p => p.Effect = ColorEffects.All[_effect.SelectedIndex].Id);
         _strength.ValueChanged += (_, _) => EditLook(p => p.FilterStrength = _strength.Value);
         _blueLight.ValueChanged += (_, _) => EditLook(p => p.BlueLightFilter = _blueLight.Value);
+        _brightness.ValueChanged += (_, _) => EditLook(p => p.Brightness = _brightness.Value);
         _texture.SelectedIndexChanged += (_, _) => EditLook(p => p.Texture = TextureStyles.All[_texture.SelectedIndex].Id);
         _opacity.ValueChanged += (_, _) => EditLook(p => p.TextureOpacity = _opacity.Value);
         _hideFromCapture.CheckedChanged += (_, _) => Changed(() => _settings.HideFromCapture = _hideFromCapture.Checked);
@@ -136,6 +140,7 @@ internal sealed class SettingsForm : Form
         _effect.SelectedIndex = Array.IndexOf(ColorEffects.All, ColorEffects.Find(p.Effect));
         _strength.Value = Math.Clamp(p.FilterStrength, 0, 100);
         _blueLight.Value = Math.Clamp(p.BlueLightFilter, 0, 100);
+        _brightness.Value = Math.Clamp(p.Brightness, Profile.MinBrightness, 100);
         _texture.SelectedIndex = Array.IndexOf(TextureStyles.All, TextureStyles.Find(p.Texture));
         _opacity.Value = Math.Clamp(p.TextureOpacity, 0, 100);
         _hideFromCapture.Checked = _settings.HideFromCapture;
@@ -360,12 +365,13 @@ internal sealed class SettingsForm : Form
     {
         _strengthValue.Text = $"{_strength.Value}%";
         _blueLightValue.Text = $"{_blueLight.Value}%";
+        _brightnessValue.Text = $"{_brightness.Value}%";
         _opacityValue.Text = $"{_opacity.Value}%";
     }
 
     void UpdateEnabledState()
     {
-        foreach (Control c in new Control[] { _effect, _strength, _blueLight, _texture, _opacity, _hideFromCapture })
+        foreach (Control c in new Control[] { _effect, _strength, _blueLight, _brightness, _texture, _opacity, _hideFromCapture })
             c.Enabled = _settings.Enabled;
         _deleteProfile.Enabled = _settings.Profiles.Count > 1;
         _saveProfile.Enabled = _settings.HasUnsavedChanges;
@@ -400,9 +406,9 @@ internal sealed class SettingsForm : Form
         return combo;
     }
 
-    static TrackBar Slider() => new()
+    static TrackBar Slider(int minimum = 0) => new()
     {
-        Minimum = 0, Maximum = 100, TickFrequency = 10, SmallChange = 1, LargeChange = 10, Dock = DockStyle.Fill,
+        Minimum = minimum, Maximum = 100, TickFrequency = 10, SmallChange = 1, LargeChange = 10, Dock = DockStyle.Fill,
     };
 
     static Label ValueLabel() => new() { AutoSize = true, Anchor = AnchorStyles.Left };
