@@ -18,22 +18,24 @@ Deixa a tela do Windows com cara de e-paper / papel:
 Tudo é aplicado na hora como prévia. As mudanças de perfil só são guardadas quando você clica em **Salvar**; as opções gerais são salvas ao fechar a janela. Tudo fica em `%APPDATA%\PaperWindow\settings.json`.
 Na primeira execução a janela abre sozinha.
 
-| Opção | O que faz |
-|---|---|
-| Efeito ativo | Liga/desliga filtro e textura |
-| Perfil | Escolhe o perfil ativo; **Salvar** guarda as alterações, **Novo...** cria um perfil com o visual da tela, **Renomear...** e **Excluir** |
-| Efeito de cor | E-ink quente, E-ink neutro, Sépia, Jornal, Papel kraft, Papel colorido (mantém um pouco da cor) |
-| Intensidade do filtro | 0% = cores originais, 100% = efeito completo |
-| Filtro de luz azul | Esquenta a tela reduzindo azul (até 65%) e um pouco de verde (até 25%), como uma luz noturna; 0% = desligado |
-| Brilho | Escurece a tela por software, de 100% (normal) até 20%; funciona em qualquer monitor e escurece além do mínimo do próprio monitor |
-| Textura do papel | Fibras, Grão fino, Jornal (pontilhado), Aquarela |
-| Opacidade da textura | 0% = sem textura, 100% = textura máxima |
-| Cursor temático | Troca a seta, a mãozinha de links e o cursor de texto por cursores desenhados nas cores do perfil. Estilos: Seta de tinta, Lápis, Pena |
-| Rastro de tinta no mouse | O mouse deixa um traço de tinta que vai afinando e desbotando, como caneta no papel ou o "fantasma" de telas e-ink. A duração vai de 0,2 s a 1,5 s |
-| Trocar de perfil automaticamente entre dia e noite | Ativa o perfil do dia e o da noite nos horários escolhidos (veja [Dia e noite](#dia-e-noite)) |
-| Esconder textura e rastro em prints e compartilhamento de tela | A textura e o rastro continuam visíveis para você, mas não aparecem em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |
-| Atalho liga/desliga | Atalho global para ligar/desligar o efeito |
-| Iniciar com o Windows | Abre sozinho ao fazer login (`HKCU\...\Run`) |
+No topo ficam **Efeito ativo** e o **Perfil** que está sendo editado. Abaixo, as abas **Cor e brilho**, **Textura** e **Mouse** mexem no visual do perfil; **Dia e noite** e **Geral** valem para todos os perfis. **Importar**, **Exportar**, **Restaurar padrão** e **Fechar** ficam no rodapé.
+
+| Onde | Opção | O que faz |
+|---|---|---|
+| Topo | Efeito ativo | Liga/desliga filtro e textura |
+| Topo | Perfil | Escolhe o perfil ativo; **Salvar** guarda as alterações, **Novo...** cria um perfil com o visual da tela, **Renomear...** e **Excluir** |
+| Cor e brilho | Efeito de cor | E-ink quente, E-ink neutro, Sépia, Jornal, Papel kraft, Papel colorido (mantém um pouco da cor) |
+| Cor e brilho | Intensidade do filtro | 0% = cores originais, 100% = efeito completo |
+| Cor e brilho | Filtro de luz azul | Esquenta a tela reduzindo azul (até 65%) e um pouco de verde (até 25%), como uma luz noturna; 0% = desligado |
+| Cor e brilho | Brilho | Escurece a tela por software, de 100% (normal) até 20%; funciona em qualquer monitor e escurece além do mínimo do próprio monitor |
+| Textura | Textura do papel | Fibras, Grão fino, Jornal (pontilhado), Aquarela |
+| Textura | Opacidade da textura | 0% = sem textura, 100% = textura máxima |
+| Mouse | Cursor temático | Troca a seta, a mãozinha de links e o cursor de texto por cursores desenhados nas cores do perfil. Estilos: Seta de tinta, Lápis, Pena |
+| Mouse | Rastro de tinta no mouse | O mouse deixa um traço de tinta que vai afinando e desbotando, como caneta no papel ou o "fantasma" de telas e-ink. A duração vai de 0,2 s a 1,5 s |
+| Dia e noite | Trocar de perfil automaticamente entre dia e noite | Ativa o perfil do dia e o da noite nos horários escolhidos (veja [Dia e noite](#dia-e-noite)) |
+| Geral | Esconder textura e rastro em prints e compartilhamento de tela | A textura e o rastro continuam visíveis para você, mas não aparecem em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |
+| Geral | Atalho liga/desliga | Atalho global para ligar/desligar o efeito |
+| Geral | Iniciar com o Windows | Abre sozinho ao fazer login (`HKCU\...\Run`) |
 
 ### Perfis
 

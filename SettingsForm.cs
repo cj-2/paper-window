@@ -38,6 +38,7 @@ internal sealed class SettingsForm : Form
     readonly TextBox _hotkey = new() { ReadOnly = true, Dock = DockStyle.Fill, ShortcutsEnabled = false, Cursor = Cursors.Hand };
     readonly Label _hotkeyStatus = new() { AutoSize = true, MaximumSize = new Size(300, 0), Margin = new Padding(0, 0, 0, 6) };
     readonly CheckBox _startup = new() { Text = "Iniciar com o Windows", AutoSize = true };
+    readonly TabControl _tabs = new() { Margin = new Padding(0, 6, 0, 0) };
     bool _loading;
 
     public SettingsForm(Settings settings, HotkeyManager hotkeys, Action onChange)
@@ -58,36 +59,44 @@ internal sealed class SettingsForm : Form
         Padding = new Padding(12);
         _hotkey.BackColor = SystemColors.Window;
 
-        var grid = new TableLayoutPanel { ColumnCount = 3, AutoSize = true, Dock = DockStyle.Fill };
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 300));
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 48));
-
         var newProfile = new Button { Text = "Novo...", AutoSize = true };
         var renameProfile = new Button { Text = "Renomear...", AutoSize = true };
         var profileButtons = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, 6) };
         profileButtons.Controls.AddRange([_saveProfile, newProfile, renameProfile, _deleteProfile]);
 
-        AddRow(grid, null, _enabled);
-        AddRow(grid, "Perfil", _profile);
-        AddRow(grid, "", profileButtons);
-        AddRow(grid, "Efeito de cor", _effect);
-        AddRow(grid, "Intensidade do filtro", _strength, _strengthValue);
-        AddRow(grid, "Filtro de luz azul", _blueLight, _blueLightValue);
-        AddRow(grid, "Brilho", _brightness, _brightnessValue);
-        AddRow(grid, "Textura do papel", _texture);
-        AddRow(grid, "Opacidade da textura", _opacity, _opacityValue);
-        AddRow(grid, null, _cursorTheme);
-        AddRow(grid, "Estilo do cursor", _cursorStyle);
-        AddRow(grid, null, _inkTrail);
-        AddRow(grid, "Duração do rastro", _trailLength, _trailLengthValue);
-        AddRow(grid, null, _schedule);
-        AddRow(grid, "Perfil do dia", ScheduleRow(_dayProfile, _dayStart));
-        AddRow(grid, "Perfil da noite", ScheduleRow(_nightProfile, _nightStart));
-        AddRow(grid, null, _hideFromCapture);
-        AddRow(grid, "Atalho liga/desliga", _hotkey);
-        AddRow(grid, "", _hotkeyStatus);
-        AddRow(grid, null, _startup);
+        // Above the tabs: what the look tabs act on (on/off and which profile is being edited).
+        var header = Grid();
+        AddRow(header, null, _enabled);
+        AddRow(header, "Perfil", _profile);
+        AddRow(header, "", profileButtons);
+
+        // The first three tabs edit the profile's look; the last two hold options shared by all profiles.
+        _tabs.TabPages.AddRange([
+            Page("Cor e brilho",
+                ("Efeito de cor", _effect, null),
+                ("Intensidade do filtro", _strength, _strengthValue),
+                ("Filtro de luz azul", _blueLight, _blueLightValue),
+                ("Brilho", _brightness, _brightnessValue)),
+            Page("Textura",
+                ("Textura do papel", _texture, null),
+                ("Opacidade da textura", _opacity, _opacityValue)),
+            Page("Mouse",
+                (null, _cursorTheme, null),
+                ("Estilo do cursor", _cursorStyle, null),
+                (null, _inkTrail, null),
+                ("Duração do rastro", _trailLength, _trailLengthValue)),
+            Page("Dia e noite",
+                (null, Hint("Vale para todos os perfis. Um perfil escolhido à mão vale até a próxima troca de período."), null),
+                (null, _schedule, null),
+                ("Perfil do dia", ScheduleRow(_dayProfile, _dayStart), null),
+                ("Perfil da noite", ScheduleRow(_nightProfile, _nightStart), null)),
+            Page("Geral",
+                (null, Hint("Vale para todos os perfis."), null),
+                (null, _hideFromCapture, null),
+                ("Atalho liga/desliga", _hotkey, null),
+                ("", _hotkeyStatus, null),
+                (null, _startup, null)),
+        ]);
 
         var import = new Button { Text = "Importar...", AutoSize = true };
         var export = new Button { Text = "Exportar...", AutoSize = true };
@@ -99,9 +108,12 @@ internal sealed class SettingsForm : Form
             Margin = new Padding(0, 12, 0, 0),
         };
         buttons.Controls.AddRange([close, reset, export, import]);
-        grid.Controls.Add(buttons, 0, grid.RowCount);
-        grid.SetColumnSpan(buttons, 3);
-        Controls.Add(grid);
+
+        var root = new TableLayoutPanel { ColumnCount = 1, AutoSize = true, Dock = DockStyle.Fill };
+        root.Controls.Add(header);
+        root.Controls.Add(_tabs);
+        root.Controls.Add(buttons);
+        Controls.Add(root);
         AcceptButton = CancelButton = close;
 
         var tips = new ToolTip();
@@ -109,7 +121,6 @@ internal sealed class SettingsForm : Form
         tips.SetToolTip(newProfile, "Cria um perfil novo com o visual que está na tela");
         tips.SetToolTip(reset, "Volta os controles para os valores padrão (clique em Salvar para manter)");
         tips.SetToolTip(_hotkey, "Clique e pressione a nova combinação de teclas");
-        tips.SetToolTip(_schedule, "Um perfil escolhido à mão vale até a próxima troca de período");
 
         _profile.SelectedIndexChanged += (_, _) =>
         {
@@ -192,6 +203,20 @@ internal sealed class SettingsForm : Form
         UpdateLabels();
         UpdateEnabledState();
         if (!_hotkey.Focused) UpdateHotkeyDisplay();
+    }
+
+    /// <summary>A TabControl does not size itself: make it fit the tallest and widest page.</summary>
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        var content = Size.Empty;
+        foreach (TabPage page in _tabs.TabPages)
+        {
+            var s = page.Controls[0].GetPreferredSize(Size.Empty);
+            content = new Size(Math.Max(content.Width, s.Width), Math.Max(content.Height, s.Height));
+        }
+        var chrome = _tabs.Size - _tabs.DisplayRectangle.Size;   // tab strip and borders
+        _tabs.Size = content + _tabs.TabPages[0].Padding.Size + chrome;
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -448,6 +473,31 @@ internal sealed class SettingsForm : Form
         }
         if (trailing != null) grid.Controls.Add(trailing, 2, row);
     }
+
+    static TableLayoutPanel Grid()
+    {
+        var grid = new TableLayoutPanel { ColumnCount = 3, AutoSize = true, Dock = DockStyle.Fill };
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 300));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 48));
+        return grid;
+    }
+
+    static TabPage Page(string title, params (string? Label, Control Control, Control? Trailing)[] rows)
+    {
+        var grid = Grid();
+        grid.Dock = DockStyle.Top;   // with Fill, the last row would soak up the spare height of shorter pages
+        foreach (var (label, control, trailing) in rows) AddRow(grid, label, control, trailing);
+        var page = new TabPage(title) { Padding = new Padding(10), UseVisualStyleBackColor = true };
+        page.Controls.Add(grid);
+        return page;
+    }
+
+    static Label Hint(string text) => new()
+    {
+        Text = text, AutoSize = true, MaximumSize = new Size(380, 0), ForeColor = SystemColors.GrayText,
+        Margin = new Padding(0, 0, 0, 8),
+    };
 
     static ComboBox Combo(IEnumerable<string> items)
     {
