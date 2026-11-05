@@ -40,6 +40,7 @@ internal sealed class PaperContext : ApplicationContext
     readonly InkLayer _ink = new();   // ink trail and ink drops
     readonly bool _magReady;
     string? _overlayTexture;   // texture id the current overlays were built with; null when none are open
+    bool? _themeNight;          // period the Windows theme schedule last applied; null = not applied yet
     string? _scheduleKey;      // period + profile the schedule last applied; null when it has not applied anything yet
     SettingsForm? _settingsForm;
 
@@ -59,6 +60,9 @@ internal sealed class PaperContext : ApplicationContext
         });
         menu.Items.Add(_toggleItem);
         menu.Items.Add(_profilesItem);
+        var darkItem = new ToolStripMenuItem("Tema escuro do Windows", null, (_, _) => SetWindowsDark(!WindowsTheme.IsDark));
+        menu.Items.Add(darkItem);
+        menu.Opening += (_, _) => darkItem.Checked = WindowsTheme.IsDark;
         _profilesItem.DropDownItems.Add(new ToolStripMenuItem());   // placeholder so the submenu arrow shows
         _profilesItem.DropDownOpening += (_, _) => BuildProfilesMenu();
         menu.Items.Add(new ToolStripSeparator());
@@ -161,6 +165,7 @@ internal sealed class PaperContext : ApplicationContext
     void CheckSchedule()
     {
         var now = DateTime.Now.TimeOfDay;
+        CheckWindowsTheme(now);
         string? wanted = _settings.ScheduledProfile(now);
         if (wanted == null)
         {
@@ -179,6 +184,30 @@ internal sealed class PaperContext : ApplicationContext
         _settings.DiscardDraft();
         _settings.ActiveProfile = wanted;
         SaveAndApply();
+    }
+
+    /// <summary>
+    /// Sets Windows to light mode for the day and dark mode for the night when the period changes (or the option is turned on).
+    /// A mode picked by hand in Windows stays until the next change.
+    /// </summary>
+    void CheckWindowsTheme(TimeSpan now)
+    {
+        if (!_settings.ScheduleWindowsTheme)
+        {
+            _themeNight = null;
+            return;
+        }
+        bool night = _settings.IsNight(now);
+        if (night == _themeNight) return;
+        _themeNight = night;
+        SetWindowsDark(night);
+    }
+
+    /// <summary>Switches Windows to dark or light mode, from the tray menu, the settings window or the schedule.</summary>
+    internal static void SetWindowsDark(bool dark)
+    {
+        try { WindowsTheme.Set(dark); }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { }
     }
 
     void OnTimeChanged(object? sender, EventArgs e) => CheckSchedule();

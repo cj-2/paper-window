@@ -42,6 +42,8 @@ internal sealed class SettingsForm : Form
     readonly DateTimePicker _dayStart = TimePicker();
     readonly ComboBox _nightProfile = ScheduleCombo();
     readonly DateTimePicker _nightStart = TimePicker();
+    readonly CheckBox _windowsDark = new() { Text = "Escuro", AutoSize = true };
+    readonly CheckBox _windowsTheme = new() { Text = "Mudar o tema do Windows: claro de dia, escuro à noite", AutoSize = true };
     readonly CheckBox _hideTexture = new() { Text = "Esconder a textura em prints, gravações e compartilhamento de tela", AutoSize = true };
     readonly CheckBox _hideMouse = new() { Text = "Esconder rastro e pingos de tinta em prints, gravações e compartilhamento", AutoSize = true };
     readonly TextBox _hotkey = new() { ReadOnly = true, Dock = DockStyle.Fill, ShortcutsEnabled = false, Cursor = Cursors.Hand };
@@ -98,10 +100,12 @@ internal sealed class SettingsForm : Form
                 ("Espessura do rastro", _trailWidth, _trailWidthValue),
                 (null, _inkDrop, null)),
             Page("Dia e noite",
-                (null, Hint("Vale para todos os perfis. Um perfil escolhido à mão vale até a próxima troca de período."), null),
+                (null, Hint("Vale para todos os perfis. Um perfil ou tema escolhido à mão vale até a próxima troca de período."), null),
                 (null, _schedule, null),
                 ("Perfil do dia", ScheduleRow(_dayProfile, _dayStart), null),
-                ("Perfil da noite", ScheduleRow(_nightProfile, _nightStart), null)),
+                ("Perfil da noite", ScheduleRow(_nightProfile, _nightStart), null),
+                ("Tema do Windows", _windowsDark, null),
+                (null, _windowsTheme, null)),
             Page("Geral",
                 (null, Hint("Vale para todos os perfis."), null),
                 (null, _hideTexture, null),
@@ -173,9 +177,13 @@ internal sealed class SettingsForm : Form
             Changed(() => _settings.NightProfile = _settings.Profiles[_nightProfile.SelectedIndex].Name);
         _dayStart.ValueChanged += (_, _) => Changed(() => _settings.DayStart = HourMinute(_dayStart));
         _nightStart.ValueChanged += (_, _) => Changed(() => _settings.NightStart = HourMinute(_nightStart));
+        _windowsTheme.CheckedChanged += (_, _) => Changed(() => _settings.ScheduleWindowsTheme = _windowsTheme.Checked);
         _hideTexture.CheckedChanged += (_, _) => Changed(() => _settings.HideTextureFromCapture = _hideTexture.Checked);
         _hideMouse.CheckedChanged += (_, _) => Changed(() => _settings.HideMouseFromCapture = _hideMouse.Checked);
         _startup.CheckedChanged += (_, _) => { if (!_loading) Startup.IsEnabled = _startup.Checked; };
+        _windowsDark.CheckedChanged += (_, _) => { if (!_loading) PaperContext.SetWindowsDark(_windowsDark.Checked); };
+        // The theme can change outside this window (tray menu, Windows Settings, the schedule): show it as it is now.
+        Activated += (_, _) => { _loading = true; _windowsDark.Checked = WindowsTheme.IsDark; _loading = false; };
 
         // While recording a new hotkey, release the current one so pressing it reaches the text box.
         _hotkey.Enter += (_, _) => { _hotkeys.Suspend(true); _hotkey.Text = "Pressione a combinação..."; };
@@ -217,6 +225,8 @@ internal sealed class SettingsForm : Form
         _nightProfile.SelectedIndex = Math.Max(0, _settings.Profiles.FindIndex(x => x.Name == _settings.NightProfile));
         _dayStart.Value = DateTime.Today + _settings.DayStart;
         _nightStart.Value = DateTime.Today + _settings.NightStart;
+        _windowsTheme.Checked = _settings.ScheduleWindowsTheme;
+        _windowsDark.Checked = WindowsTheme.IsDark;
         _hideTexture.Checked = _settings.HideTextureFromCapture;
         _hideMouse.Checked = _settings.HideMouseFromCapture;
         _startup.Checked = Startup.IsEnabled;
@@ -468,8 +478,9 @@ internal sealed class SettingsForm : Form
         // Each mouse effect's own setting is only editable while that effect is on.
         _cursorStyle.Enabled = _cursorSize.Enabled = _settings.Enabled && _settings.Shown.CursorTheme;
         _trailLength.Enabled = _trailWidth.Enabled = _settings.Enabled && _settings.Shown.InkTrail;
-        foreach (Control c in new Control[] { _dayProfile, _dayStart, _nightProfile, _nightStart })
-            c.Enabled = _settings.ScheduleEnabled;
+        _dayProfile.Enabled = _nightProfile.Enabled = _settings.ScheduleEnabled;
+        // The times also drive the Windows theme, so they stay editable while either switch is on.
+        _dayStart.Enabled = _nightStart.Enabled = _settings.ScheduleEnabled || _settings.ScheduleWindowsTheme;
         _deleteProfile.Enabled = _settings.Profiles.Count > 1;
         _saveProfile.Enabled = _settings.HasUnsavedChanges;
     }

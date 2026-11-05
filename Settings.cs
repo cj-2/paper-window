@@ -95,6 +95,8 @@ internal sealed class Settings
     public string NightProfile { get; set; } = Profile.DefaultName;
     public TimeSpan DayStart { get; set; } = new(7, 0, 0);
     public TimeSpan NightStart { get; set; } = new(19, 0, 0);
+    /// <summary>Also switches Windows to light mode at <see cref="DayStart"/> and dark mode at <see cref="NightStart"/>; independent of <see cref="ScheduleEnabled"/>.</summary>
+    public bool ScheduleWindowsTheme { get; set; } = false;
 
     /// <summary>Whether <paramref name="time"/> falls in the night period; the night may cross midnight. Equal times mean always day.</summary>
     public bool IsNight(TimeSpan time) =>

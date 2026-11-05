@@ -36,6 +36,8 @@ No topo ficam **Efeito ativo** e o **Perfil** que está sendo editado. Abaixo, a
 | Mouse | Espessura do rastro | Grossura do traço com o botão pressionado, de 2 px a 12 px. Ao soltar, o traço afina até 30% disso |
 | Mouse | Pingo de tinta ao clicar | Cada clique deixa um pingo de tinta que se espalha numa manchinha com respingos e some em menos de 1 s. Liga/desliga separado do rastro |
 | Dia e noite | Trocar de perfil automaticamente entre dia e noite | Ativa o perfil do dia e o da noite nos horários escolhidos (veja [Dia e noite](#dia-e-noite)) |
+| Dia e noite | Tema do Windows: Escuro | Liga/desliga o modo escuro do Windows na hora (apps e sistema). Também no menu da bandeja, em **Tema escuro do Windows** |
+| Dia e noite | Mudar o tema do Windows: claro de dia, escuro à noite | Usa os mesmos horários para alternar o modo claro/escuro do Windows (apps e sistema). Funciona com ou sem a troca de perfil |
 | Geral | Esconder a textura em prints, gravações e compartilhamento de tela | A textura continua visível para você, mas não aparece em prints, gravações nem compartilhamento de tela (Windows 10 2004+). Ligada por padrão |
 | Geral | Esconder rastro e pingos de tinta em prints, gravações e compartilhamento | O mesmo para o rastro e os pingos de tinta. Desligada por padrão, para que apareçam na gravação e mostrem onde você aponta e clica |
 | Geral | Atalho liga/desliga | Atalho global para ligar/desligar o efeito |
@@ -63,6 +65,8 @@ Com **Trocar de perfil automaticamente entre dia e noite** marcado, o programa a
 - Se houver alterações não salvas no perfil ativo, a troca espera até você salvar ou descartar.
 - Excluir um perfil usado no agendamento faz o horário apontar para o primeiro perfil; renomear acompanha o novo nome.
 - No menu da bandeja, **Perfil** mostra qual período e perfil estão agendados agora.
+
+Com **Mudar o tema do Windows: claro de dia, escuro à noite** marcado, o programa põe o Windows no modo claro no horário do dia e no modo escuro no horário da noite (o mesmo que Configurações > Personalização > Cores, para apps e sistema). Funciona sozinho, sem precisar da troca de perfil, e segue as mesmas regras de quando acontece. Um modo escolhido à mão nas Configurações do Windows vale até a próxima virada de período. Desligar a opção deixa o Windows no modo em que estiver.
 
 ### Atalho de teclado
 
