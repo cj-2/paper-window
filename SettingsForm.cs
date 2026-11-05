@@ -29,6 +29,11 @@ internal sealed class SettingsForm : Form
     readonly CheckBox _inkTrail = new() { Text = "Rastro de tinta no mouse", AutoSize = true };
     readonly TrackBar _trailLength = Slider(Profile.MinTrailLength);
     readonly Label _trailLengthValue = ValueLabel();
+    readonly CheckBox _schedule = new() { Text = "Trocar de perfil automaticamente entre dia e noite", AutoSize = true };
+    readonly ComboBox _dayProfile = ScheduleCombo();
+    readonly DateTimePicker _dayStart = TimePicker();
+    readonly ComboBox _nightProfile = ScheduleCombo();
+    readonly DateTimePicker _nightStart = TimePicker();
     readonly CheckBox _hideFromCapture = new() { Text = "Esconder textura e rastro em prints e compartilhamento de tela", AutoSize = true };
     readonly TextBox _hotkey = new() { ReadOnly = true, Dock = DockStyle.Fill, ShortcutsEnabled = false, Cursor = Cursors.Hand };
     readonly Label _hotkeyStatus = new() { AutoSize = true, MaximumSize = new Size(300, 0), Margin = new Padding(0, 0, 0, 6) };
@@ -76,6 +81,9 @@ internal sealed class SettingsForm : Form
         AddRow(grid, "Estilo do cursor", _cursorStyle);
         AddRow(grid, null, _inkTrail);
         AddRow(grid, "Duração do rastro", _trailLength, _trailLengthValue);
+        AddRow(grid, null, _schedule);
+        AddRow(grid, "Perfil do dia", ScheduleRow(_dayProfile, _dayStart));
+        AddRow(grid, "Perfil da noite", ScheduleRow(_nightProfile, _nightStart));
         AddRow(grid, null, _hideFromCapture);
         AddRow(grid, "Atalho liga/desliga", _hotkey);
         AddRow(grid, "", _hotkeyStatus);
@@ -101,6 +109,7 @@ internal sealed class SettingsForm : Form
         tips.SetToolTip(newProfile, "Cria um perfil novo com o visual que está na tela");
         tips.SetToolTip(reset, "Volta os controles para os valores padrão (clique em Salvar para manter)");
         tips.SetToolTip(_hotkey, "Clique e pressione a nova combinação de teclas");
+        tips.SetToolTip(_schedule, "Um perfil escolhido à mão vale até a próxima troca de período");
 
         _profile.SelectedIndexChanged += (_, _) =>
         {
@@ -130,6 +139,13 @@ internal sealed class SettingsForm : Form
         _cursorStyle.SelectedIndexChanged += (_, _) => EditLook(p => p.CursorStyle = CursorStyles.All[_cursorStyle.SelectedIndex].Id);
         _inkTrail.CheckedChanged += (_, _) => EditLook(p => p.InkTrail = _inkTrail.Checked);
         _trailLength.ValueChanged += (_, _) => EditLook(p => p.InkTrailLength = _trailLength.Value);
+        _schedule.CheckedChanged += (_, _) => Changed(() => _settings.ScheduleEnabled = _schedule.Checked);
+        _dayProfile.SelectedIndexChanged += (_, _) =>
+            Changed(() => _settings.DayProfile = _settings.Profiles[_dayProfile.SelectedIndex].Name);
+        _nightProfile.SelectedIndexChanged += (_, _) =>
+            Changed(() => _settings.NightProfile = _settings.Profiles[_nightProfile.SelectedIndex].Name);
+        _dayStart.ValueChanged += (_, _) => Changed(() => _settings.DayStart = HourMinute(_dayStart));
+        _nightStart.ValueChanged += (_, _) => Changed(() => _settings.NightStart = HourMinute(_nightStart));
         _hideFromCapture.CheckedChanged += (_, _) => Changed(() => _settings.HideFromCapture = _hideFromCapture.Checked);
         _startup.CheckedChanged += (_, _) => { if (!_loading) Startup.IsEnabled = _startup.Checked; };
 
@@ -160,6 +176,16 @@ internal sealed class SettingsForm : Form
         _cursorStyle.SelectedIndex = Array.IndexOf(CursorStyles.All, CursorStyles.Find(p.CursorStyle));
         _inkTrail.Checked = p.InkTrail;
         _trailLength.Value = Math.Clamp(p.InkTrailLength, Profile.MinTrailLength, 100);
+        _schedule.Checked = _settings.ScheduleEnabled;
+        var names = _settings.Profiles.Select(x => (object)x.Name).ToArray();
+        _dayProfile.Items.Clear();
+        _dayProfile.Items.AddRange(names);
+        _dayProfile.SelectedIndex = Math.Max(0, _settings.Profiles.FindIndex(x => x.Name == _settings.DayProfile));
+        _nightProfile.Items.Clear();
+        _nightProfile.Items.AddRange(names);
+        _nightProfile.SelectedIndex = Math.Max(0, _settings.Profiles.FindIndex(x => x.Name == _settings.NightProfile));
+        _dayStart.Value = DateTime.Today + _settings.DayStart;
+        _nightStart.Value = DateTime.Today + _settings.NightStart;
         _hideFromCapture.Checked = _settings.HideFromCapture;
         _startup.Checked = Startup.IsEnabled;
         _loading = false;
@@ -395,6 +421,8 @@ internal sealed class SettingsForm : Form
         // Each mouse effect's own setting is only editable while that effect is on.
         _cursorStyle.Enabled = _settings.Enabled && _settings.Shown.CursorTheme;
         _trailLength.Enabled = _settings.Enabled && _settings.Shown.InkTrail;
+        foreach (Control c in new Control[] { _dayProfile, _dayStart, _nightProfile, _nightStart })
+            c.Enabled = _settings.ScheduleEnabled;
         _deleteProfile.Enabled = _settings.Profiles.Count > 1;
         _saveProfile.Enabled = _settings.HasUnsavedChanges;
     }
@@ -434,4 +462,31 @@ internal sealed class SettingsForm : Form
     };
 
     static Label ValueLabel() => new() { AutoSize = true, Anchor = AnchorStyles.Left };
+
+    static ComboBox ScheduleCombo()
+    {
+        var combo = Combo([]);
+        combo.Dock = DockStyle.None;
+        combo.Width = 170;
+        return combo;
+    }
+
+    static DateTimePicker TimePicker() => new()
+    {
+        Format = DateTimePickerFormat.Custom, CustomFormat = "HH:mm", ShowUpDown = true, Width = 64,
+    };
+
+    static TimeSpan HourMinute(DateTimePicker picker) => new(picker.Value.Hour, picker.Value.Minute, 0);
+
+    /// <summary>[profile] a partir de [time], on one grid row.</summary>
+    static FlowLayoutPanel ScheduleRow(ComboBox profile, DateTimePicker start)
+    {
+        var row = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = Padding.Empty };
+        row.Controls.AddRange([
+            profile,
+            new Label { Text = "a partir de", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(6, 6, 3, 0) },
+            start,
+        ]);
+        return row;
+    }
 }

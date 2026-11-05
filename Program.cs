@@ -35,10 +35,12 @@ internal sealed class PaperContext : ApplicationContext
     readonly ToolStripMenuItem _profilesItem = new("Perfil");
     readonly HotkeyManager _hotkeys = new();
     readonly System.Windows.Forms.Timer _topmostTimer = new() { Interval = 2000 };
+    readonly System.Windows.Forms.Timer _scheduleTimer = new() { Interval = 30_000 };
     readonly List<OverlayForm> _overlays = new();
     readonly InkTrail _inkTrail = new();
     readonly bool _magReady;
     string? _overlayTexture;   // texture id the current overlays were built with; null when none are open
+    string? _scheduleKey;      // period + profile the schedule last applied; null when it has not applied anything yet
     SettingsForm? _settingsForm;
 
     public PaperContext()
@@ -77,8 +79,13 @@ internal sealed class PaperContext : ApplicationContext
             _inkTrail.KeepOnTop();
         };
         SystemEvents.DisplaySettingsChanged += OnDisplayChanged;
+        SystemEvents.TimeChanged += OnTimeChanged;
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
+        _scheduleTimer.Tick += (_, _) => CheckSchedule();
+        _scheduleTimer.Start();
         _hotkeys.Pressed += ToggleEnabled;
 
+        CheckSchedule();
         Apply();
         if (_firstRun) ShowSettings();
         else if (_hotkeys.Failed)
@@ -134,6 +141,50 @@ internal sealed class PaperContext : ApplicationContext
                 Checked = p == _settings.Current,
             });
         }
+        if (_settings.ScheduleEnabled)
+        {
+            bool night = _settings.IsNight(DateTime.Now.TimeOfDay);
+            _profilesItem.DropDownItems.Add(new ToolStripSeparator());
+            _profilesItem.DropDownItems.Add(new ToolStripMenuItem(
+                $"Agendado agora: {(night ? "Noite" : "Dia")} ({(night ? _settings.NightProfile : _settings.DayProfile)})")
+            {
+                Enabled = false,
+            });
+        }
+    }
+
+    /// <summary>
+    /// Switches to the scheduled profile when the period (day/night) or the profile chosen for it changes.
+    /// A profile picked by hand stays until the next change. Waits while the active profile has unsaved edits.
+    /// </summary>
+    void CheckSchedule()
+    {
+        var now = DateTime.Now.TimeOfDay;
+        string? wanted = _settings.ScheduledProfile(now);
+        if (wanted == null)
+        {
+            _scheduleKey = null;
+            return;
+        }
+        string key = $"{_settings.IsNight(now)}|{wanted}";
+        if (key == _scheduleKey) return;
+        if (wanted == _settings.ActiveProfile)
+        {
+            _scheduleKey = key;
+            return;
+        }
+        if (_settings.HasUnsavedChanges) return;   // try again on the next tick
+        _scheduleKey = key;
+        _settings.DiscardDraft();
+        _settings.ActiveProfile = wanted;
+        SaveAndApply();
+    }
+
+    void OnTimeChanged(object? sender, EventArgs e) => CheckSchedule();
+
+    void OnPowerModeChanged(object? sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Resume) CheckSchedule();
     }
 
     void SwitchProfile(string name)
@@ -163,7 +214,13 @@ internal sealed class PaperContext : ApplicationContext
             _settingsForm.Activate();
             return;
         }
-        _settingsForm = new SettingsForm(_settings, _hotkeys, Apply);
+        // Schedule edits in the window take effect right away; posted so the switch does not refresh the
+        // window's controls from inside their own change events.
+        _settingsForm = new SettingsForm(_settings, _hotkeys, () =>
+        {
+            Apply();
+            SynchronizationContext.Current?.Post(_ => CheckSchedule(), null);
+        });
         _settingsForm.FormClosed += (_, _) => _settingsForm = null;
         _settingsForm.Show();
         _settingsForm.Activate();
@@ -220,8 +277,11 @@ internal sealed class PaperContext : ApplicationContext
         if (_settingsForm is { IsDisposed: false }) return;
 
         SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
+        SystemEvents.TimeChanged -= OnTimeChanged;
+        SystemEvents.PowerModeChanged -= OnPowerModeChanged;
         _hotkeys.Dispose();
         _topmostTimer.Dispose();
+        _scheduleTimer.Dispose();
         _inkTrail.Dispose();
         CursorTheme.Restore();
         CloseOverlays();

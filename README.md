@@ -30,6 +30,7 @@ Na primeira execução a janela abre sozinha.
 | Opacidade da textura | 0% = sem textura, 100% = textura máxima |
 | Cursor temático | Troca a seta, a mãozinha de links e o cursor de texto por cursores desenhados nas cores do perfil. Estilos: Seta de tinta, Lápis, Pena |
 | Rastro de tinta no mouse | O mouse deixa um traço de tinta que vai afinando e desbotando, como caneta no papel ou o "fantasma" de telas e-ink. A duração vai de 0,2 s a 1,5 s |
+| Trocar de perfil automaticamente entre dia e noite | Ativa o perfil do dia e o da noite nos horários escolhidos (veja [Dia e noite](#dia-e-noite)) |
 | Esconder textura e rastro em prints e compartilhamento de tela | A textura e o rastro continuam visíveis para você, mas não aparecem em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |
 | Atalho liga/desliga | Atalho global para ligar/desligar o efeito |
 | Iniciar com o Windows | Abre sozinho ao fazer login (`HKCU\...\Run`) |
@@ -42,9 +43,20 @@ Mexer nesses controles mostra o resultado na tela na hora, mas só altera o perf
 - Se você trocar de perfil, importar, exportar, fechar a janela ou sair do programa com alterações pendentes, ele pergunta se quer salvar (**Sim**/**Não**/**Cancelar**). **Não** descarta as alterações e volta o visual salvo.
 - **Novo...** funciona como "salvar como": cria um perfil com o visual que está na tela e deixa o perfil original como estava salvo.
 - **Restaurar padrão** volta os controles para os valores padrão. Clique em **Salvar** para manter.
-As opções gerais (efeito ativo, esconder em prints, atalho, iniciar com o Windows) valem para todos os perfis.
+As opções gerais (efeito ativo, dia e noite, esconder em prints, atalho, iniciar com o Windows) valem para todos os perfis.
 
 Arquivos de configuração antigos (de antes dos perfis) viram automaticamente um perfil chamado "Padrão".
+
+### Dia e noite
+
+Com **Trocar de perfil automaticamente entre dia e noite** marcado, o programa ativa o **Perfil do dia** a partir do horário do dia e o **Perfil da noite** a partir do horário da noite. A noite pode passar da meia-noite (ex.: 19:00 até 07:00).
+
+- A troca acontece ao abrir o programa, na virada de cada período (conferida a cada 30 s), ao voltar da suspensão e quando o relógio do Windows muda.
+- Um perfil escolhido à mão (no menu ou na janela) vale até a próxima virada de período.
+- Mudar o agendamento (ligar, trocar o perfil ou o horário) aplica o perfil do período atual na hora.
+- Se houver alterações não salvas no perfil ativo, a troca espera até você salvar ou descartar.
+- Excluir um perfil usado no agendamento faz o horário apontar para o primeiro perfil; renomear acompanha o novo nome.
+- No menu da bandeja, **Perfil** mostra qual período e perfil estão agendados agora.
 
 ### Atalho de teclado
 

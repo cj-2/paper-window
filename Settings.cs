@@ -76,6 +76,23 @@ internal sealed class Settings
     public string ActiveProfile { get; set; } = Profile.DefaultName;
     public List<Profile> Profiles { get; set; } = [new Profile()];
 
+    /// <summary>Day/night schedule: switches to <see cref="DayProfile"/> at <see cref="DayStart"/> and to <see cref="NightProfile"/> at <see cref="NightStart"/>.</summary>
+    public bool ScheduleEnabled { get; set; } = false;
+    public string DayProfile { get; set; } = Profile.DefaultName;
+    public string NightProfile { get; set; } = Profile.DefaultName;
+    public TimeSpan DayStart { get; set; } = new(7, 0, 0);
+    public TimeSpan NightStart { get; set; } = new(19, 0, 0);
+
+    /// <summary>Whether <paramref name="time"/> falls in the night period; the night may cross midnight. Equal times mean always day.</summary>
+    public bool IsNight(TimeSpan time) =>
+        NightStart > DayStart
+            ? time >= NightStart || time < DayStart
+            : time >= NightStart && time < DayStart;
+
+    /// <summary>The profile the schedule wants at <paramref name="time"/>; null when the schedule is off.</summary>
+    public string? ScheduledProfile(TimeSpan time) =>
+        !ScheduleEnabled ? null : IsNight(time) ? NightProfile : DayProfile;
+
     /// <summary>The profile being shown and edited. Always exists after <see cref="Normalize"/>.</summary>
     [JsonIgnore]
     public Profile Current => Profiles.FirstOrDefault(p => p.Name == ActiveProfile) ?? Profiles[0];
@@ -168,6 +185,20 @@ internal sealed class Settings
         if (Profiles.Count == 0) Profiles.Add(new Profile());
         if (!Profiles.Any(p => p.Name == ActiveProfile)) ActiveProfile = Profiles[0].Name;
         if (!Hotkey.TryParse(ToggleHotkey, out _)) ToggleHotkey = Hotkey.Default.ToString();
+        DayStart = TimeOfDay(DayStart);
+        NightStart = TimeOfDay(NightStart);
+        FixScheduleProfiles();
+    }
+
+    /// <summary>Keeps hours and minutes inside one day (hand-edited files may hold "25:00" or seconds).</summary>
+    static TimeSpan TimeOfDay(TimeSpan t) =>
+        new(((t.Hours % 24) + 24) % 24, ((t.Minutes % 60) + 60) % 60, 0);
+
+    /// <summary>Points schedule slots whose profile no longer exists at the first profile.</summary>
+    void FixScheduleProfiles()
+    {
+        if (!Profiles.Any(p => p.Name == DayProfile)) DayProfile = Profiles[0].Name;
+        if (!Profiles.Any(p => p.Name == NightProfile)) NightProfile = Profiles[0].Name;
     }
 
     /// <summary><paramref name="wanted"/>, or "wanted (2)", "wanted (3)"... — whichever no other profile uses.</summary>
@@ -195,6 +226,8 @@ internal sealed class Settings
         newName = newName.Trim();
         if (newName.Length == 0 || UniqueName(newName, except: p) != newName) return false;
         if (ActiveProfile == p.Name) ActiveProfile = newName;
+        if (DayProfile == p.Name) DayProfile = newName;
+        if (NightProfile == p.Name) NightProfile = newName;
         p.Name = newName;
         return true;
     }
@@ -204,6 +237,7 @@ internal sealed class Settings
     {
         if (Profiles.Count <= 1 || !Profiles.Remove(p)) return false;
         if (ActiveProfile == p.Name) ActiveProfile = Profiles[0].Name;
+        FixScheduleProfiles();
         return true;
     }
 
