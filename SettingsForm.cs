@@ -41,7 +41,8 @@ internal sealed class SettingsForm : Form
     readonly DateTimePicker _dayStart = TimePicker();
     readonly ComboBox _nightProfile = ScheduleCombo();
     readonly DateTimePicker _nightStart = TimePicker();
-    readonly CheckBox _hideFromCapture = new() { Text = "Esconder textura, rastro e pingos em prints e compartilhamento de tela", AutoSize = true };
+    readonly CheckBox _hideTexture = new() { Text = "Esconder a textura em prints, gravações e compartilhamento de tela", AutoSize = true };
+    readonly CheckBox _hideMouse = new() { Text = "Esconder rastro e pingos de tinta em prints, gravações e compartilhamento", AutoSize = true };
     readonly TextBox _hotkey = new() { ReadOnly = true, Dock = DockStyle.Fill, ShortcutsEnabled = false, Cursor = Cursors.Hand };
     readonly Label _hotkeyStatus = new() { AutoSize = true, MaximumSize = new Size(300, 0), Margin = new Padding(0, 0, 0, 6) };
     readonly CheckBox _startup = new() { Text = "Iniciar com o Windows", AutoSize = true };
@@ -101,7 +102,8 @@ internal sealed class SettingsForm : Form
                 ("Perfil da noite", ScheduleRow(_nightProfile, _nightStart), null)),
             Page("Geral",
                 (null, Hint("Vale para todos os perfis."), null),
-                (null, _hideFromCapture, null),
+                (null, _hideTexture, null),
+                (null, _hideMouse, null),
                 ("Atalho liga/desliga", _hotkey, null),
                 ("", _hotkeyStatus, null),
                 (null, _startup, null)),
@@ -168,7 +170,8 @@ internal sealed class SettingsForm : Form
             Changed(() => _settings.NightProfile = _settings.Profiles[_nightProfile.SelectedIndex].Name);
         _dayStart.ValueChanged += (_, _) => Changed(() => _settings.DayStart = HourMinute(_dayStart));
         _nightStart.ValueChanged += (_, _) => Changed(() => _settings.NightStart = HourMinute(_nightStart));
-        _hideFromCapture.CheckedChanged += (_, _) => Changed(() => _settings.HideFromCapture = _hideFromCapture.Checked);
+        _hideTexture.CheckedChanged += (_, _) => Changed(() => _settings.HideTextureFromCapture = _hideTexture.Checked);
+        _hideMouse.CheckedChanged += (_, _) => Changed(() => _settings.HideMouseFromCapture = _hideMouse.Checked);
         _startup.CheckedChanged += (_, _) => { if (!_loading) Startup.IsEnabled = _startup.Checked; };
 
         // While recording a new hotkey, release the current one so pressing it reaches the text box.
@@ -210,7 +213,8 @@ internal sealed class SettingsForm : Form
         _nightProfile.SelectedIndex = Math.Max(0, _settings.Profiles.FindIndex(x => x.Name == _settings.NightProfile));
         _dayStart.Value = DateTime.Today + _settings.DayStart;
         _nightStart.Value = DateTime.Today + _settings.NightStart;
-        _hideFromCapture.Checked = _settings.HideFromCapture;
+        _hideTexture.Checked = _settings.HideTextureFromCapture;
+        _hideMouse.Checked = _settings.HideMouseFromCapture;
         _startup.Checked = Startup.IsEnabled;
         _loading = false;
         UpdateLabels();
@@ -455,7 +459,7 @@ internal sealed class SettingsForm : Form
     void UpdateEnabledState()
     {
         foreach (Control c in new Control[]
-                 { _effect, _strength, _blueLight, _brightness, _texture, _opacity, _cursorTheme, _inkTrail, _inkDrop, _hideFromCapture })
+                 { _effect, _strength, _blueLight, _brightness, _texture, _opacity, _cursorTheme, _inkTrail, _inkDrop, _hideTexture, _hideMouse })
             c.Enabled = _settings.Enabled;
         // Each mouse effect's own setting is only editable while that effect is on.
         _cursorStyle.Enabled = _settings.Enabled && _settings.Shown.CursorTheme;

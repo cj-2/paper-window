@@ -35,7 +35,8 @@ No topo ficam **Efeito ativo** e o **Perfil** que está sendo editado. Abaixo, a
 | Mouse | Espessura do rastro | Grossura do traço com o botão pressionado, de 2 px a 12 px. Ao soltar, o traço afina até 30% disso |
 | Mouse | Pingo de tinta ao clicar | Cada clique deixa um pingo de tinta que se espalha numa manchinha com respingos e some em menos de 1 s. Liga/desliga separado do rastro |
 | Dia e noite | Trocar de perfil automaticamente entre dia e noite | Ativa o perfil do dia e o da noite nos horários escolhidos (veja [Dia e noite](#dia-e-noite)) |
-| Geral | Esconder textura, rastro e pingos em prints e compartilhamento de tela | A textura, o rastro e os pingos continuam visíveis para você, mas não aparecem em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |
+| Geral | Esconder a textura em prints, gravações e compartilhamento de tela | A textura continua visível para você, mas não aparece em prints, gravações nem compartilhamento de tela (Windows 10 2004+). Ligada por padrão |
+| Geral | Esconder rastro e pingos de tinta em prints, gravações e compartilhamento | O mesmo para o rastro e os pingos de tinta. Desligada por padrão, para que apareçam na gravação e mostrem onde você aponta e clica |
 | Geral | Atalho liga/desliga | Atalho global para ligar/desligar o efeito |
 | Geral | Iniciar com o Windows | Abre sozinho ao fazer login (`HKCU\...\Run`) |
 
@@ -103,5 +104,7 @@ Se quiser um exe que roda em qualquer PC sem runtime, troque por `--self-contain
 - O cursor temático troca a seta, a mãozinha e o cursor de texto; os outros (redimensionar, carregando etc.) continuam os do sistema. Os originais voltam ao desligar a opção, desligar o efeito ou sair do programa (e também ao reiniciar ou fazer logoff, caso o programa feche de forma inesperada).
 - O brilho por software escurece as cores, mas não a luz de fundo do monitor: não economiza energia, e o preto fica um pouco menos profundo do que baixando o brilho no próprio monitor.
 - O filtro de luz azul soma com a "Luz noturna" do Windows se as duas estiverem ligadas; normalmente vale usar só uma.
-- O filtro de cor pode ou não aparecer em prints, dependendo da ferramenta de captura usada. A opção de esconder vale só para a textura.
+- O filtro de cor pode ou não aparecer em prints, dependendo da ferramenta de captura usada; as opções de esconder valem só para a textura e para o rastro e os pingos.
+- O cursor temático sempre aparece em prints e gravações, porque substitui o próprio cursor do Windows.
+- Arquivos de configuração de antes da divisão das opções de esconder aplicam o valor antigo às duas.
 - O Windows só permite um filtro de cor da Magnification por vez: se você usar Lupa/inversão de cores ao mesmo tempo, um sobrescreve o outro.

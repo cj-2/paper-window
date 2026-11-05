@@ -77,7 +77,10 @@ internal sealed class Profile
 internal sealed class Settings
 {
     public bool Enabled { get; set; } = true;
-    public bool HideFromCapture { get; set; } = true;
+    /// <summary>Keeps the paper texture out of screenshots, recordings and screen sharing.</summary>
+    public bool HideTextureFromCapture { get; set; } = true;
+    /// <summary>Keeps the ink trail and ink drops out of captures; off by default, since they help show where you point.</summary>
+    public bool HideMouseFromCapture { get; set; } = false;
     public string ToggleHotkey { get; set; } = Hotkey.Default.ToString();   // "" = no hotkey
     public string ActiveProfile { get; set; } = Profile.DefaultName;
     public List<Profile> Profiles { get; set; } = [new Profile()];
@@ -153,8 +156,12 @@ internal sealed class Settings
         string json = File.ReadAllText(path);
         var s = JsonSerializer.Deserialize<Settings>(json)
                 ?? throw new JsonException("Arquivo de configuração vazio.");
+        var root = JsonNode.Parse(json);
+        // Files from before the split had one option for the texture and the mouse effects: keep what it did for both.
+        if (root?["HideTextureFromCapture"] is null && root?["HideFromCapture"] is JsonValue old && old.TryGetValue(out bool hide))
+            s.HideTextureFromCapture = s.HideMouseFromCapture = hide;
         // Files from before profiles existed keep the look at the root: turn it into a single profile.
-        if (JsonNode.Parse(json)?["Profiles"] is null)
+        if (root?["Profiles"] is null)
         {
             var legacy = JsonSerializer.Deserialize<Profile>(json)!;
             legacy.Name = Profile.DefaultName;

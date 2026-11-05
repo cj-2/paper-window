@@ -103,7 +103,7 @@ internal sealed class PaperContext : ApplicationContext
         SetColorMatrix(matrix);
         CursorTheme.Apply(_settings.Enabled && p.CursorTheme ? CursorStyles.Find(p.CursorStyle) : null, matrix);
         _ink.Configure(_settings.Enabled && p.InkTrail, p.InkTrailLength * 15, p.InkTrailWidth,
-            _settings.Enabled && p.InkDrop, _settings.HideFromCapture);
+            _settings.Enabled && p.InkDrop, _settings.HideMouseFromCapture);
 
         Hotkey.TryParse(_settings.ToggleHotkey, out var hotkey);
         _hotkeys.Set(hotkey);
@@ -118,7 +118,7 @@ internal sealed class PaperContext : ApplicationContext
         foreach (var o in _overlays)
         {
             o.SetOpacity(OverlayAlpha);
-            o.SetCaptureExcluded(_settings.HideFromCapture);
+            o.SetCaptureExcluded(_settings.HideTextureFromCapture);
         }
         _topmostTimer.Enabled = _settings.Enabled;
     }
