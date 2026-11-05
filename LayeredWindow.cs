@@ -2,7 +2,7 @@ namespace PaperWindow;
 
 /// <summary>
 /// Borderless, click-through, always-on-top layered window whose content is a per-pixel-alpha bitmap.
-/// Base for the paper texture overlay and the ink trail.
+/// Base for the paper texture overlay and the mouse ink layer.
 /// </summary>
 internal class LayeredWindow : Form
 {

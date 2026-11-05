@@ -37,8 +37,7 @@ internal sealed class PaperContext : ApplicationContext
     readonly System.Windows.Forms.Timer _topmostTimer = new() { Interval = 2000 };
     readonly System.Windows.Forms.Timer _scheduleTimer = new() { Interval = 30_000 };
     readonly List<OverlayForm> _overlays = new();
-    readonly InkTrail _inkTrail = new();
-    readonly InkDrops _inkDrops = new();
+    readonly InkLayer _ink = new();   // ink trail and ink drops
     readonly bool _magReady;
     string? _overlayTexture;   // texture id the current overlays were built with; null when none are open
     string? _scheduleKey;      // period + profile the schedule last applied; null when it has not applied anything yet
@@ -77,8 +76,7 @@ internal sealed class PaperContext : ApplicationContext
         _topmostTimer.Tick += (_, _) =>
         {
             _overlays.ForEach(o => o.KeepOnTop());
-            _inkTrail.KeepOnTop();
-            _inkDrops.KeepOnTop();
+            _ink.KeepOnTop();
         };
         SystemEvents.DisplaySettingsChanged += OnDisplayChanged;
         SystemEvents.TimeChanged += OnTimeChanged;
@@ -104,8 +102,8 @@ internal sealed class PaperContext : ApplicationContext
         float[] matrix = ColorMatrix();
         SetColorMatrix(matrix);
         CursorTheme.Apply(_settings.Enabled && p.CursorTheme ? CursorStyles.Find(p.CursorStyle) : null, matrix);
-        _inkTrail.Configure(_settings.Enabled && p.InkTrail, p.InkTrailLength * 15, _settings.HideFromCapture);
-        _inkDrops.Configure(_settings.Enabled && p.InkDrop, _settings.HideFromCapture);
+        _ink.Configure(_settings.Enabled && p.InkTrail, p.InkTrailLength * 15, p.InkTrailWidth,
+            _settings.Enabled && p.InkDrop, _settings.HideFromCapture);
 
         Hotkey.TryParse(_settings.ToggleHotkey, out var hotkey);
         _hotkeys.Set(hotkey);
@@ -285,8 +283,7 @@ internal sealed class PaperContext : ApplicationContext
         _hotkeys.Dispose();
         _topmostTimer.Dispose();
         _scheduleTimer.Dispose();
-        _inkTrail.Dispose();
-        _inkDrops.Dispose();
+        _ink.Dispose();
         CursorTheme.Restore();
         CloseOverlays();
         SetColorMatrix(ColorEffects.Identity());

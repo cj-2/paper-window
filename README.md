@@ -31,7 +31,8 @@ No topo ficam **Efeito ativo** e o **Perfil** que está sendo editado. Abaixo, a
 | Textura | Textura do papel | Fibras, Grão fino, Jornal (pontilhado), Aquarela |
 | Textura | Opacidade da textura | 0% = sem textura, 100% = textura máxima |
 | Mouse | Cursor temático | Troca a seta, a mãozinha de links e o cursor de texto por cursores desenhados nas cores do perfil. Estilos: Seta de tinta, Lápis, Caneta bico de pena, Giz de cera |
-| Mouse | Rastro de tinta no mouse | O mouse deixa um traço de tinta que vai afinando e desbotando, como caneta no papel ou o "fantasma" de telas e-ink. A duração vai de 0,2 s a 1,5 s |
+| Mouse | Rastro de tinta ao arrastar | Enquanto o botão principal está pressionado, o mouse deixa um traço de tinta que vai afinando e desbotando, como caneta no papel ou o "fantasma" de telas e-ink. A duração vai de 0,2 s a 1,5 s |
+| Mouse | Espessura do rastro | Grossura do traço com o botão pressionado, de 2 px a 12 px. Ao soltar, o traço afina até 30% disso |
 | Mouse | Pingo de tinta ao clicar | Cada clique deixa um pingo de tinta que se espalha numa manchinha com respingos e some em menos de 1 s. Liga/desliga separado do rastro |
 | Dia e noite | Trocar de perfil automaticamente entre dia e noite | Ativa o perfil do dia e o da noite nos horários escolhidos (veja [Dia e noite](#dia-e-noite)) |
 | Geral | Esconder textura, rastro e pingos em prints e compartilhamento de tela | A textura, o rastro e os pingos continuam visíveis para você, mas não aparecem em prints, gravações nem compartilhamento de tela (Windows 10 2004+) |

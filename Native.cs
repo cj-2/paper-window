@@ -67,6 +67,10 @@ internal static class Native
 
     public const int VK_LBUTTON = 0x01, VK_RBUTTON = 0x02;
 
+    /// <summary>Whether the primary mouse button is held. GetAsyncKeyState reads the physical buttons, so follow "swap buttons" by hand.</summary>
+    public static bool PrimaryButtonDown() =>
+        (GetAsyncKeyState(SystemInformation.MouseButtonsSwapped ? VK_RBUTTON : VK_LBUTTON) & 0x8000) != 0;
+
     public const uint OCR_NORMAL = 32512, OCR_IBEAM = 32513, OCR_HAND = 32649;
     public const uint SPI_SETCURSORS = 0x0057;
     public const int SM_CXCURSOR = 13;
