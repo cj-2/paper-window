@@ -10,7 +10,8 @@ internal static class CursorStyles
     [
         new("seta", "Seta de tinta"),
         new("lapis", "Lápis"),
-        new("pena", "Pena"),
+        new("pena", "Caneta bico de pena"),   // id kept from the old "Pena" so saved profiles keep their choice
+        new("giz", "Giz de cera"),
     ];
 
     public static CursorStyle Find(string id) => All.FirstOrDefault(s => s.Id == id) ?? All[0];
@@ -62,17 +63,8 @@ internal static class CursorTheme
         Color C(int r, int g, int b) => ColorEffects.Transform(matrix, Color.FromArgb(r, g, b));
 
         public Color InkDark => C(20, 18, 16);
-        public Color Ink => C(52, 46, 40);
         public Color InkLight => C(104, 94, 84);
         public Color Paper => C(252, 249, 240);
-        public Color Wood => C(232, 198, 150);
-        public Color WoodDark => C(178, 136, 88);
-        public Color Graphite => C(60, 60, 66);
-        public Color Metal => C(214, 214, 220);
-        public Color MetalDark => C(118, 118, 126);
-        public Color Eraser => C(232, 146, 138);
-        public Color EraserDark => C(170, 92, 88);
-        public Color Shaft => C(240, 230, 208);
     }
 
     /// <summary>Draws the pointer for a style on a 32-unit grid scaled to <paramref name="size"/> px, tip at the top-left.</summary>
@@ -87,6 +79,7 @@ internal static class CursorTheme
         {
             case "lapis": DrawPencil(g, pal); break;
             case "pena": DrawQuill(g, pal); break;
+            case "giz": DrawCrayon(g, pal); break;
             default: DrawArrow(g, pal); break;
         }
         return bmp;
@@ -110,130 +103,132 @@ internal static class CursorTheme
             g.DrawLine(gleam, 3, 5.5f, 3, 19);
     }
 
+    // Pencil, dip pen and crayon are flat icons after the user's references: a dark silhouette with light details.
+
+    /// <summary>Black pencil with a rounded end, a light stripe along the body and a light sharpened cone with a dark lead.</summary>
     static void DrawPencil(Graphics g, Palette pal)
     {
-        // Built along +x from the tip, then turned 45° so the tip points to the top-left corner.
-        using var place = new Matrix();
-        place.Translate(1.5f, 1.5f);
-        place.Rotate(45);
-
-        using var silhouette = Shape(place, new PointF[]
+        using var place = Diagonal();
+        const float h = 4.2f, coneEnd = 7.6f, end = 26.8f;
+        using var body = Placed(place, p =>
         {
-            new(0, 0), new(8, -3.6f), new(29.2f, -3.6f), new(30, -2.6f), new(30, 2.6f), new(29.2f, 3.6f), new(8, 3.6f),
+            p.AddLine(0, 0, coneEnd, -h);
+            p.AddLine(coneEnd, -h, end, -h);
+            p.AddArc(end - h, -h, 2 * h, 2 * h, -90, 180);
+            p.AddLine(end, h, coneEnd, h);
+            p.CloseFigure();
         });
-        DropShadow(g, silhouette);
-        using (var outline = new Pen(pal.Paper, 1.9f) { LineJoin = LineJoin.Round })
-            g.DrawPath(outline, silhouette);
+        Silhouette(g, pal, body);
+        Fill(g, pal.InkDark, body);
 
-        // Sharpened wood, lighter in the middle like a cone catching the light.
-        using (var wood = Shape(place, new PointF[] { new(2.8f, -1.25f), new(8, -3.6f), new(8, 3.6f), new(2.8f, 1.25f) }))
-        using (var woodBrush = Across(place, -3.6f, 3.6f, pal.WoodDark, pal.Wood, pal.WoodDark))
-            g.FillPath(woodBrush, wood);
-        using (var tip = Shape(place, new PointF[] { new(0, 0), new(2.8f, -1.25f), new(2.8f, 1.25f) }))
-        using (var graphite = new SolidBrush(pal.Graphite))
-            g.FillPath(graphite, tip);
-
-        // Hexagonal painted body: three facets in different tones, with the scalloped edge left by the sharpener.
-        using (var body = Shape(place, new PointF[]
+        // Sharpened wood: a cone whose base curves into the body.
+        using (var cone = Placed(place, p =>
                {
-                   new(8, -3.6f), new(9.6f, -2.4f), new(8.4f, -1.2f), new(9.6f, 0), new(8.4f, 1.2f), new(9.6f, 2.4f),
-                   new(8, 3.6f), new(23, 3.6f), new(23, -3.6f),
+                   p.AddLine(0.9f, -0.5f, coneEnd - 0.4f, -h + 0.75f);
+                   p.AddBezier(coneEnd - 0.4f, -h + 0.75f, coneEnd + 2.2f, -h * 0.45f, coneEnd + 2.2f, h * 0.45f,
+                       coneEnd - 0.4f, h - 0.75f);
+                   p.AddLine(coneEnd - 0.4f, h - 0.75f, 0.9f, 0.5f);
+                   p.CloseFigure();
                }))
-        {
-            var clip = g.Clip;
-            g.SetClip(body);
-            FillLocal(g, place, new RectangleF(7, -3.6f, 17, 2.4f), pal.InkLight);
-            FillLocal(g, place, new RectangleF(7, -1.2f, 17, 2.4f), pal.Ink);
-            FillLocal(g, place, new RectangleF(7, 1.2f, 17, 2.4f), pal.InkDark);
-            g.Clip = clip;
-        }
+            Fill(g, pal.Paper, cone);
+        using (var lead = Shape(place, new PointF[] { new(0, 0), new(3f, -1.65f), new(3f, 1.65f) }))
+            Fill(g, pal.InkDark, lead);
 
-        // Metal band with two grooves, then the eraser.
-        using (var band = Shape(place, new PointF[] { new(23, -3.6f), new(26, -3.6f), new(26, 3.6f), new(23, 3.6f) }))
-        using (var metal = Across(place, -3.6f, 3.6f, pal.MetalDark, pal.Metal, pal.MetalDark))
-            g.FillPath(metal, band);
-        using (var groove = new Pen(pal.MetalDark, 0.35f))
-        {
-            foreach (float x in new[] { 24f, 25f })
-            {
-                var line = new[] { new PointF(x, -3.6f), new PointF(x, 3.6f) };
-                place.TransformPoints(line);
-                g.DrawLine(groove, line[0], line[1]);
-            }
-        }
-        using (var eraser = Shape(place, new PointF[]
-               {
-                   new(26, -3.6f), new(29.2f, -3.6f), new(30, -2.6f), new(30, 2.6f), new(29.2f, 3.6f), new(26, 3.6f),
-               }))
-        using (var rubber = Across(place, -3.6f, 3.6f, pal.Eraser, pal.Eraser, pal.EraserDark))
-            g.FillPath(rubber, eraser);
+        var stripe = new[] { new PointF(11.8f, -2.15f), new PointF(24.6f, -2.15f) };
+        place.TransformPoints(stripe);
+        using var gleam = new Pen(pal.Paper, 1.05f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        g.DrawLine(gleam, stripe[0], stripe[1]);
     }
 
+    /// <summary>Dip pen: a black fountain nib, a light ferrule and a long curved feather split by a light shaft, with two notches.</summary>
     static void DrawQuill(Graphics g, Palette pal)
     {
-        using var place = new Matrix();
-        place.Translate(1.5f, 1.5f);
-        place.Rotate(45);
+        using var place = Diagonal();
+        const float vaneStart = 8.9f, vaneEnd = 32f;
+        static float Shaft(float x) => -2.6f * MathF.Pow(Math.Clamp((x - 7.5f) / 24.5f, 0, 1), 1.8f);
+        static float Bulge(float x, float max, float bias)
+        {
+            float u = Math.Clamp((x - vaneStart) / (vaneEnd - vaneStart), 0, 1);
+            // MathF.Sin(MathF.PI) is a hair below zero, and a fractional power of that is NaN.
+            return max * MathF.Pow(MathF.Max(0, MathF.Sin(MathF.PI * MathF.Pow(u, bias))), 0.55f);
+        }
+        static PointF Wide(float x, float k = 1) => new(x, Shaft(x) - k * Bulge(x, 5.4f, 1.15f));
+        static PointF Narrow(float x, float k = 1) => new(x, Shaft(x) + k * Bulge(x, 2.1f, 1.0f));
 
-        // Feather vane: wide on the upper side, narrow below, tapering to a rounded end.
-        using var vane = new GraphicsPath();
-        vane.AddBezier(6, 0, 10, -7.5f, 21, -9, 31, -5.2f);
-        vane.AddBezier(31, -5.2f, 27, -1.6f, 18, 2.8f, 6, 0);
-        vane.CloseFigure();
-        vane.Transform(place);
-        using var nib = Shape(place, new PointF[] { new(0, 0), new(6.5f, -1.4f), new(6.5f, 1.4f) });
+        const int n = 28;
+        var xs = Enumerable.Range(0, n + 1).Select(i => vaneStart + (vaneEnd - vaneStart) * i / n).ToArray();
+        using var vane = Shape(place, xs.Select(x => Wide(x)).Concat(xs.Reverse().Select(x => Narrow(x))).ToArray());
+        using var stem = Placed(place, p => p.AddRectangle(new RectangleF(7.9f, -0.95f, vaneStart - 7.9f, 1.9f)));
+        using var ferrule = Placed(place, p => p.AddRectangle(new RectangleF(6.7f, -1.5f, 1.2f, 3f)));
+        using var nib = Shape(place, new PointF[]
+        {
+            new(0, 0), new(3.2f, -1.45f), new(5.2f, -1.8f), new(6.7f, -1.3f), new(6.7f, 1.3f), new(5.2f, 1.8f), new(3.2f, 1.45f),
+        });
         using var silhouette = new GraphicsPath();
-        silhouette.AddPath(vane, false);
-        silhouette.AddPath(nib, false);
+        foreach (var part in new[] { vane, stem, ferrule, nib }) silhouette.AddPath(part, false);
 
-        DropShadow(g, silhouette);
-        using (var outline = new Pen(pal.Paper, 1.9f) { LineJoin = LineJoin.Round })
-            g.DrawPath(outline, silhouette);
+        Silhouette(g, pal, silhouette);
+        Fill(g, pal.InkDark, vane);
+        Fill(g, pal.InkDark, stem);
+        Fill(g, pal.InkDark, nib);
+        Fill(g, pal.Paper, ferrule);
 
-        // Dark at the base, lighter towards the end of the feather.
-        using (var featherBrush = Along(place, 6, 31, pal.InkDark, pal.InkLight))
-            g.FillPath(featherBrush, vane);
-
-        // Barbs: fine light strokes from the shaft out to the edge, kept inside the vane.
-        var clip = g.Clip;
-        g.SetClip(vane);
-        using (var barb = new Pen(Color.FromArgb(70, pal.Paper), 0.35f))
+        // Notches cut into the wide side of the feather, pointing back towards the nib.
+        foreach (float x in new[] { 18.5f, 25f })
         {
-            for (float x = 8.5f; x < 30; x += 1.7f)
-            {
-                float y = ShaftY(x);
-                var up = new[] { new PointF(x, y), new PointF(x + 3.4f, y - 6f) };
-                var down = new[] { new PointF(x, y), new PointF(x + 2.4f, y + 3.2f) };
-                place.TransformPoints(up);
-                place.TransformPoints(down);
-                g.DrawLine(barb, up[0], up[1]);
-                g.DrawLine(barb, down[0], down[1]);
-            }
-        }
-        g.Clip = clip;
-
-        // Shaft: thick near the nib, thinning out.
-        foreach (var (from, to, width) in new[] { (6f, 16f, 1.1f), (15f, 30f, 0.6f) })
-        {
-            var pts = Enumerable.Range(0, 9).Select(i => from + (to - from) * i / 8f).Select(x => new PointF(x, ShaftY(x))).ToArray();
-            place.TransformPoints(pts);
-            using var shaft = new Pen(pal.Shaft, width) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            g.DrawCurve(shaft, pts);
+            using var notch = Shape(place, new[] { Wide(x, 1.2f), Wide(x - 1.3f, 1.2f), Wide(x - 4.2f, 0.45f) });
+            Fill(g, pal.Paper, notch);
         }
 
-        // Metal nib with its slit and breather hole.
-        using (var metal = Across(place, -1.4f, 1.4f, pal.MetalDark, pal.Metal, pal.MetalDark))
-            g.FillPath(metal, nib);
-        var slit = new[] { new PointF(1.2f, 0), new PointF(4.6f, 0) };
+        // Shaft: a light line from the ferrule almost to the tip of the feather.
+        var shaft = Enumerable.Range(0, 12).Select(i => 8.2f + 21.3f * i / 11f).Select(x => new PointF(x, Shaft(x))).ToArray();
+        place.TransformPoints(shaft);
+        using (var pen = new Pen(pal.Paper, 0.6f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            g.DrawCurve(pen, shaft);
+
+        // Nib slit and breather hole.
+        var slit = new[] { new PointF(1.1f, 0), new PointF(4.0f, 0) };
+        var hole = new[] { new PointF(4.5f, 0) };
         place.TransformPoints(slit);
-        using (var slitPen = new Pen(pal.InkDark, 0.4f))
-            g.DrawLine(slitPen, slit[0], slit[1]);
-        var hole = new[] { new PointF(4.8f, 0) };
         place.TransformPoints(hole);
-        using (var holeBrush = new SolidBrush(pal.InkDark))
-            g.FillEllipse(holeBrush, hole[0].X - 0.45f, hole[0].Y - 0.45f, 0.9f, 0.9f);
+        using (var pen = new Pen(pal.Paper, 0.4f)) g.DrawLine(pen, slit[0], slit[1]);
+        using (var b = new SolidBrush(pal.Paper)) g.FillEllipse(b, hole[0].X - 0.7f, hole[0].Y - 0.7f, 1.4f, 1.4f);
+        using (var b = new SolidBrush(pal.InkDark)) g.FillEllipse(b, hole[0].X - 0.28f, hole[0].Y - 0.28f, 0.56f, 0.56f);
+    }
 
-        static float ShaftY(float x) => -4.8f * MathF.Pow(Math.Clamp((x - 6) / 25f, 0, 1), 1.4f);
+    /// <summary>
+    /// Crayon in outline style: thick dark border, light wrapper split by two bands, light cone with a blunt dark tip,
+    /// and a heavier border on the shadow side.
+    /// </summary>
+    static void DrawCrayon(Graphics g, Palette pal)
+    {
+        using var place = Diagonal();
+        const float h = 4.6f, coneEnd = 8f, end = 30f, line = 1.25f, side = 2.3f, r = 2.2f;
+        using var body = Placed(place, p =>
+        {
+            p.AddLine(0.6f, -0.9f, coneEnd, -h + 0.4f);
+            p.AddArc(coneEnd, -h, r, r, 180, 90);
+            p.AddArc(end - r, -h, r, r, 270, 90);
+            p.AddArc(end - r, h - r, r, r, 0, 90);
+            p.AddArc(coneEnd, h - r, r, r, 90, 90);
+            p.AddLine(coneEnd, h - 0.4f, 0.6f, 0.9f);
+            p.AddArc(0, -0.9f, 1.8f, 1.8f, 90, 180);
+            p.CloseFigure();
+        });
+        Silhouette(g, pal, body);
+        Fill(g, pal.InkDark, body);
+
+        // Light inside: the cone, then the wrapper in three parts separated by the bands.
+        using (var cone = Shape(place, new PointF[]
+               {
+                   new(2.9f, -1.0f), new(coneEnd + 0.3f, -h + line + 0.3f), new(coneEnd + 0.3f, h - side - 0.2f), new(2.9f, 0.1f),
+               }))
+            Fill(g, pal.Paper, cone);
+        foreach (var (x0, x1) in new[] { (coneEnd + 1.5f, 11.4f), (12.6f, 14.6f), (15.8f, end - line) })
+        {
+            using var part = Placed(place, p => AddRoundRect(p, x0, -h + line, x1, h - side, 0.7f));
+            Fill(g, pal.Paper, part);
+        }
     }
 
     /// <summary>Text cursor: an ink I-beam with a paper outline and a soft shadow, centered.</summary>
@@ -273,36 +268,45 @@ internal static class CursorTheme
         return path;
     }
 
-    static void FillLocal(Graphics g, Matrix place, RectangleF local, Color color)
+    /// <summary>Local frame for the pen-like pointers: +x runs from the tip at the hotspot down-right at 45°.</summary>
+    static Matrix Diagonal()
     {
-        using var path = new GraphicsPath();
-        path.AddRectangle(local);
+        var m = new Matrix();
+        m.Translate(1.5f, 1.5f);
+        m.Rotate(45);
+        return m;
+    }
+
+    static GraphicsPath Placed(Matrix place, Action<GraphicsPath> build)
+    {
+        var path = new GraphicsPath();
+        build(path);
         path.Transform(place);
+        return path;
+    }
+
+    static void Fill(Graphics g, Color color, GraphicsPath path)
+    {
         using var brush = new SolidBrush(color);
         g.FillPath(brush, path);
     }
 
-    /// <summary>Gradient across the shape's width (local y), e.g. to round a cylinder: edge, middle, edge.</summary>
-    static LinearGradientBrush Across(Matrix place, float y0, float y1, Color edge0, Color middle, Color edge1)
+    static void AddRoundRect(GraphicsPath p, float x0, float y0, float x1, float y1, float r)
     {
-        var brush = new LinearGradientBrush(new PointF(0, y0 - 0.01f), new PointF(0, y1 + 0.01f), edge0, edge1)
-        {
-            InterpolationColors = new ColorBlend
-            {
-                Colors = new[] { edge0, middle, edge1 },
-                Positions = new[] { 0f, 0.45f, 1f },
-            },
-        };
-        brush.MultiplyTransform(place);
-        return brush;
+        float d = 2 * r;
+        p.AddArc(x0, y0, d, d, 180, 90);
+        p.AddArc(x1 - d, y0, d, d, 270, 90);
+        p.AddArc(x1 - d, y1 - d, d, d, 0, 90);
+        p.AddArc(x0, y1 - d, d, d, 90, 90);
+        p.CloseFigure();
     }
 
-    /// <summary>Gradient along the shape's length (local x).</summary>
-    static LinearGradientBrush Along(Matrix place, float x0, float x1, Color from, Color to)
+    /// <summary>Shadow plus a paper outline, so a dark pointer stays visible on dark backgrounds.</summary>
+    static void Silhouette(Graphics g, Palette pal, GraphicsPath shape)
     {
-        var brush = new LinearGradientBrush(new PointF(x0 - 0.01f, 0), new PointF(x1 + 0.01f, 0), from, to);
-        brush.MultiplyTransform(place);
-        return brush;
+        DropShadow(g, shape);
+        using var outline = new Pen(pal.Paper, 1.9f) { LineJoin = LineJoin.Round };
+        g.DrawPath(outline, shape);
     }
 
     /// <summary>Soft shadow below and to the right of <paramref name="shape"/>, like the system cursors.</summary>

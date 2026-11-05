@@ -61,6 +61,12 @@ internal static class Native
     [DllImport("user32.dll")]
     public static extern short GetKeyState(int nVirtKey);
 
+    /// <summary>Physical key/button state right now, whichever window has the input (high bit = down).</summary>
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
+
+    public const int VK_LBUTTON = 0x01, VK_RBUTTON = 0x02;
+
     public const uint OCR_NORMAL = 32512, OCR_IBEAM = 32513, OCR_HAND = 32649;
     public const uint SPI_SETCURSORS = 0x0057;
     public const int SM_CXCURSOR = 13;

@@ -38,6 +38,7 @@ internal sealed class PaperContext : ApplicationContext
     readonly System.Windows.Forms.Timer _scheduleTimer = new() { Interval = 30_000 };
     readonly List<OverlayForm> _overlays = new();
     readonly InkTrail _inkTrail = new();
+    readonly InkDrops _inkDrops = new();
     readonly bool _magReady;
     string? _overlayTexture;   // texture id the current overlays were built with; null when none are open
     string? _scheduleKey;      // period + profile the schedule last applied; null when it has not applied anything yet
@@ -77,6 +78,7 @@ internal sealed class PaperContext : ApplicationContext
         {
             _overlays.ForEach(o => o.KeepOnTop());
             _inkTrail.KeepOnTop();
+            _inkDrops.KeepOnTop();
         };
         SystemEvents.DisplaySettingsChanged += OnDisplayChanged;
         SystemEvents.TimeChanged += OnTimeChanged;
@@ -103,6 +105,7 @@ internal sealed class PaperContext : ApplicationContext
         SetColorMatrix(matrix);
         CursorTheme.Apply(_settings.Enabled && p.CursorTheme ? CursorStyles.Find(p.CursorStyle) : null, matrix);
         _inkTrail.Configure(_settings.Enabled && p.InkTrail, p.InkTrailLength * 15, _settings.HideFromCapture);
+        _inkDrops.Configure(_settings.Enabled && p.InkDrop, _settings.HideFromCapture);
 
         Hotkey.TryParse(_settings.ToggleHotkey, out var hotkey);
         _hotkeys.Set(hotkey);
@@ -283,6 +286,7 @@ internal sealed class PaperContext : ApplicationContext
         _topmostTimer.Dispose();
         _scheduleTimer.Dispose();
         _inkTrail.Dispose();
+        _inkDrops.Dispose();
         CursorTheme.Restore();
         CloseOverlays();
         SetColorMatrix(ColorEffects.Identity());

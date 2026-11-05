@@ -23,6 +23,7 @@ internal sealed class Profile
     public string CursorStyle { get; set; } = CursorStyles.All[0].Id;
     public bool InkTrail { get; set; } = false;
     public int InkTrailLength { get; set; } = 40;    // MinTrailLength..100 (x15 ms)
+    public bool InkDrop { get; set; } = false;       // drop of ink on each click
 
     public Profile Clone(string name)
     {
@@ -44,13 +45,14 @@ internal sealed class Profile
         CursorStyle = other.CursorStyle;
         InkTrail = other.InkTrail;
         InkTrailLength = other.InkTrailLength;
+        InkDrop = other.InkDrop;
     }
 
     public bool SameLook(Profile o) =>
         Effect == o.Effect && FilterStrength == o.FilterStrength && BlueLightFilter == o.BlueLightFilter
         && Brightness == o.Brightness && Texture == o.Texture && TextureOpacity == o.TextureOpacity
         && CursorTheme == o.CursorTheme && CursorStyle == o.CursorStyle
-        && InkTrail == o.InkTrail && InkTrailLength == o.InkTrailLength;
+        && InkTrail == o.InkTrail && InkTrailLength == o.InkTrailLength && InkDrop == o.InkDrop;
 
     /// <summary>Unknown ids (e.g. from a newer version) and out-of-range values fall back to something valid.</summary>
     public void Normalize()
