@@ -24,20 +24,24 @@ internal static class CursorStyles
 /// </summary>
 internal static class CursorTheme
 {
-    static string? _applied;   // style + matrix currently installed; null when the system cursors are in use
+    static string? _applied;   // style + size + matrix currently installed; null when the system cursors are in use
 
-    /// <summary>Installs the themed cursors for <paramref name="style"/>, or restores the system ones when null.</summary>
-    public static void Apply(CursorStyle? style, float[] matrix)
+    /// <summary>
+    /// Installs the themed cursors for <paramref name="style"/>, or restores the system ones when null.
+    /// <paramref name="size"/> is in px at the system's normal cursor size (32); a larger system cursor scales it up.
+    /// At 32 px a thin outline on diagonals and tips has too few pixels to look smooth, hence the larger sizes.
+    /// </summary>
+    public static void Apply(CursorStyle? style, float[] matrix, int size)
     {
         if (style == null)
         {
             if (_applied != null) Restore();
             return;
         }
-        string key = style.Id + "|" + string.Join(",", matrix.Select(v => MathF.Round(v, 3)));
+        size = size * Math.Max(32, Native.GetSystemMetrics(Native.SM_CXCURSOR)) / 32;
+        string key = style.Id + "|" + size + "|" + string.Join(",", matrix.Select(v => MathF.Round(v, 3)));
         if (key == _applied) return;   // nothing changed; avoid re-installing on every slider tick
 
-        int size = Math.Max(32, Native.GetSystemMetrics(Native.SM_CXCURSOR));
         var palette = new Palette(matrix);
         using (var pointer = DrawPointer(style, size, palette))
         {
@@ -85,6 +89,7 @@ internal static class CursorTheme
         return bmp;
     }
 
+    /// <summary>Flat ink arrow with a light stripe along its left edge, matching the pencil.</summary>
     static void DrawArrow(Graphics g, Palette pal)
     {
         using var arrow = new GraphicsPath();
@@ -93,14 +98,10 @@ internal static class CursorTheme
             new(1.5f, 1.5f), new(1.5f, 23), new(6.5f, 18), new(10.5f, 26.5f),
             new(14, 25), new(10, 16.5f), new(17, 16.5f),
         });
-        DropShadow(g, arrow);
-        using (var outline = new Pen(pal.Paper, 1.9f) { LineJoin = LineJoin.Round })
-            g.DrawPath(outline, arrow);
-        using (var fill = new LinearGradientBrush(new PointF(1.5f, 1.5f), new PointF(13, 26), pal.InkLight, pal.InkDark))
-            g.FillPath(fill, arrow);
-        // A thin gleam along the left edge gives the ink some volume.
-        using (var gleam = new Pen(Color.FromArgb(120, pal.Paper), 0.7f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
-            g.DrawLine(gleam, 3, 5.5f, 3, 19);
+        Silhouette(g, pal, arrow);
+        Fill(g, pal.InkDark, arrow);
+        using var stripe = new Pen(pal.Paper, 1.05f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        g.DrawLine(stripe, 3.9f, 7.2f, 3.9f, 17.6f);
     }
 
     // Pencil, dip pen and crayon are flat icons after the user's references: a dark silhouette with light details.

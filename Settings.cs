@@ -12,6 +12,7 @@ internal sealed class Profile
     public const int MinBrightness = 20;   // below this the screen becomes hard to read
     public const int MinTrailLength = 10;
     public const int MinTrailWidth = 2, MaxTrailWidth = 12;   // px at 96 dpi
+    public static readonly int[] CursorSizes = [32, 40, 48];  // px at 100% scale; the first is the default
 
     public string Name { get; set; } = DefaultName;
     public string Effect { get; set; } = ColorEffects.All[0].Id;
@@ -22,6 +23,7 @@ internal sealed class Profile
     public int TextureOpacity { get; set; } = 55;    // 0..100
     public bool CursorTheme { get; set; } = false;
     public string CursorStyle { get; set; } = CursorStyles.All[0].Id;
+    public int CursorSize { get; set; } = CursorSizes[0];   // one of CursorSizes
     public bool InkTrail { get; set; } = false;
     public int InkTrailLength { get; set; } = 40;    // MinTrailLength..100 (x15 ms)
     public int InkTrailWidth { get; set; } = 6;      // MinTrailWidth..MaxTrailWidth, while the button is held
@@ -45,6 +47,7 @@ internal sealed class Profile
         TextureOpacity = other.TextureOpacity;
         CursorTheme = other.CursorTheme;
         CursorStyle = other.CursorStyle;
+        CursorSize = other.CursorSize;
         InkTrail = other.InkTrail;
         InkTrailLength = other.InkTrailLength;
         InkTrailWidth = other.InkTrailWidth;
@@ -54,7 +57,7 @@ internal sealed class Profile
     public bool SameLook(Profile o) =>
         Effect == o.Effect && FilterStrength == o.FilterStrength && BlueLightFilter == o.BlueLightFilter
         && Brightness == o.Brightness && Texture == o.Texture && TextureOpacity == o.TextureOpacity
-        && CursorTheme == o.CursorTheme && CursorStyle == o.CursorStyle
+        && CursorTheme == o.CursorTheme && CursorStyle == o.CursorStyle && CursorSize == o.CursorSize
         && InkTrail == o.InkTrail && InkTrailLength == o.InkTrailLength && InkTrailWidth == o.InkTrailWidth && InkDrop == o.InkDrop;
 
     /// <summary>Unknown ids (e.g. from a newer version) and out-of-range values fall back to something valid.</summary>
@@ -68,6 +71,7 @@ internal sealed class Profile
         Brightness = Math.Clamp(Brightness, MinBrightness, 100);
         TextureOpacity = Math.Clamp(TextureOpacity, 0, 100);
         CursorStyle = CursorStyles.Find(CursorStyle ?? "").Id;
+        if (!CursorSizes.Contains(CursorSize)) CursorSize = CursorSizes[0];
         InkTrailLength = Math.Clamp(InkTrailLength, MinTrailLength, 100);
         InkTrailWidth = Math.Clamp(InkTrailWidth, MinTrailWidth, MaxTrailWidth);
     }

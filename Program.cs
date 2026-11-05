@@ -101,7 +101,7 @@ internal sealed class PaperContext : ApplicationContext
         var p = _settings.Shown;
         float[] matrix = ColorMatrix();
         SetColorMatrix(matrix);
-        CursorTheme.Apply(_settings.Enabled && p.CursorTheme ? CursorStyles.Find(p.CursorStyle) : null, matrix);
+        CursorTheme.Apply(_settings.Enabled && p.CursorTheme ? CursorStyles.Find(p.CursorStyle) : null, matrix, p.CursorSize);
         _ink.Configure(_settings.Enabled && p.InkTrail, p.InkTrailLength * 15, p.InkTrailWidth,
             _settings.Enabled && p.InkDrop, _settings.HideMouseFromCapture);
 

@@ -31,6 +31,7 @@ No topo ficam **Efeito ativo** e o **Perfil** que está sendo editado. Abaixo, a
 | Textura | Textura do papel | Fibras, Grão fino, Jornal (pontilhado), Aquarela |
 | Textura | Opacidade da textura | 0% = sem textura, 100% = textura máxima |
 | Mouse | Cursor temático | Troca a seta, a mãozinha de links e o cursor de texto por cursores desenhados nas cores do perfil. Estilos: Seta de tinta, Lápis, Caneta bico de pena, Giz de cera |
+| Mouse | Tamanho do cursor | 32 px (padrão), 40 px ou 48 px para o cursor temático. Em 32 px o contorno fica um pouco serrilhado nas pontas; os tamanhos maiores ficam mais lisos. Com a escala do Windows acima de 100% ou o ponteiro do sistema maior, cresce na mesma proporção |
 | Mouse | Rastro de tinta ao arrastar | Enquanto o botão principal está pressionado, o mouse deixa um traço de tinta que vai afinando e desbotando, como caneta no papel ou o "fantasma" de telas e-ink. A duração vai de 0,2 s a 1,5 s |
 | Mouse | Espessura do rastro | Grossura do traço com o botão pressionado, de 2 px a 12 px. Ao soltar, o traço afina até 30% disso |
 | Mouse | Pingo de tinta ao clicar | Cada clique deixa um pingo de tinta que se espalha numa manchinha com respingos e some em menos de 1 s. Liga/desliga separado do rastro |

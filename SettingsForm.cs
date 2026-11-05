@@ -26,6 +26,7 @@ internal sealed class SettingsForm : Form
     readonly Label _opacityValue = ValueLabel();
     readonly CheckBox _cursorTheme = new() { Text = "Cursor temático", AutoSize = true };
     readonly ComboBox _cursorStyle = Combo(CursorStyles.All.Select(s => s.Name));
+    readonly ComboBox _cursorSize = Combo(Profile.CursorSizes.Select((px, i) => i == 0 ? $"{px} px (padrão)" : $"{px} px"));
     readonly CheckBox _inkTrail = new() { Text = "Rastro de tinta ao arrastar", AutoSize = true };
     readonly TrackBar _trailLength = Slider(Profile.MinTrailLength);
     readonly Label _trailLengthValue = ValueLabel();
@@ -91,6 +92,7 @@ internal sealed class SettingsForm : Form
             Page("Mouse",
                 (null, _cursorTheme, null),
                 ("Estilo do cursor", _cursorStyle, null),
+                ("Tamanho do cursor", _cursorSize, null),
                 (null, _inkTrail, null),
                 ("Duração do rastro", _trailLength, _trailLengthValue),
                 ("Espessura do rastro", _trailWidth, _trailWidthValue),
@@ -159,6 +161,7 @@ internal sealed class SettingsForm : Form
         _opacity.ValueChanged += (_, _) => EditLook(p => p.TextureOpacity = _opacity.Value);
         _cursorTheme.CheckedChanged += (_, _) => EditLook(p => p.CursorTheme = _cursorTheme.Checked);
         _cursorStyle.SelectedIndexChanged += (_, _) => EditLook(p => p.CursorStyle = CursorStyles.All[_cursorStyle.SelectedIndex].Id);
+        _cursorSize.SelectedIndexChanged += (_, _) => EditLook(p => p.CursorSize = Profile.CursorSizes[_cursorSize.SelectedIndex]);
         _inkTrail.CheckedChanged += (_, _) => EditLook(p => p.InkTrail = _inkTrail.Checked);
         _trailLength.ValueChanged += (_, _) => EditLook(p => p.InkTrailLength = _trailLength.Value);
         _trailWidth.ValueChanged += (_, _) => EditLook(p => p.InkTrailWidth = _trailWidth.Value);
@@ -199,6 +202,7 @@ internal sealed class SettingsForm : Form
         _opacity.Value = Math.Clamp(p.TextureOpacity, 0, 100);
         _cursorTheme.Checked = p.CursorTheme;
         _cursorStyle.SelectedIndex = Array.IndexOf(CursorStyles.All, CursorStyles.Find(p.CursorStyle));
+        _cursorSize.SelectedIndex = Math.Max(0, Array.IndexOf(Profile.CursorSizes, p.CursorSize));
         _inkTrail.Checked = p.InkTrail;
         _trailLength.Value = Math.Clamp(p.InkTrailLength, Profile.MinTrailLength, 100);
         _trailWidth.Value = Math.Clamp(p.InkTrailWidth, Profile.MinTrailWidth, Profile.MaxTrailWidth);
@@ -462,7 +466,7 @@ internal sealed class SettingsForm : Form
                  { _effect, _strength, _blueLight, _brightness, _texture, _opacity, _cursorTheme, _inkTrail, _inkDrop, _hideTexture, _hideMouse })
             c.Enabled = _settings.Enabled;
         // Each mouse effect's own setting is only editable while that effect is on.
-        _cursorStyle.Enabled = _settings.Enabled && _settings.Shown.CursorTheme;
+        _cursorStyle.Enabled = _cursorSize.Enabled = _settings.Enabled && _settings.Shown.CursorTheme;
         _trailLength.Enabled = _trailWidth.Enabled = _settings.Enabled && _settings.Shown.InkTrail;
         foreach (Control c in new Control[] { _dayProfile, _dayStart, _nightProfile, _nightStart })
             c.Enabled = _settings.ScheduleEnabled;
