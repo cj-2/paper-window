@@ -90,11 +90,11 @@ Se outro programa já usa a combinação, aparece um aviso em vermelho na janela
 Requer o .NET 8 SDK.
 
 ```bash
-dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
+dotnet publish -c Release -r win-x64 -p:SelfContained=false -p:PublishSingleFile=true -o publish
 ```
 
 O executável sai em `publish\PaperWindow.exe` (precisa do .NET 8 Desktop Runtime instalado).
-Se quiser um exe que roda em qualquer PC sem runtime, troque por `--self-contained true` (fica com ~150 MB).
+Se quiser um exe que roda em qualquer PC sem runtime, troque por `-p:SelfContained=true` (fica com ~150 MB).
 
 ## Ajustes
 
